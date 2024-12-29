@@ -68,7 +68,6 @@ def find_doctor():
             cursor.close()
             connection.close()
 
-find_doctor()
 
 def update_doctor():
     doctors = find_doctor()
