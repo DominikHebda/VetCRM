@@ -15,6 +15,10 @@ def fetch_clients():
             connection.close()
     except Exception as e:
         print(f"Błąd podczas pobierania danych: {e}")
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
 
 fetch_clients()
 
@@ -74,12 +78,12 @@ def find_client():
             print("Nie znaleziono klientów o podanych danych.")
             return None
 
-        cursor.close()
-        connection.close()
-
     except Exception as e:
         print(f"Błąd podczas pobierania danych: {e}")
-
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
 
 def update_client():
     """Aktualizuje dane klienta na podstawie ID."""
