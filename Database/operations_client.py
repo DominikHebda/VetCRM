@@ -1,4 +1,4 @@
-from Database.db_connection import create_connection
+from Database.connection import create_connection
 from datetime import datetime
 
 def fetch_clients():
@@ -15,10 +15,6 @@ def fetch_clients():
             connection.close()
     except Exception as e:
         print(f"Błąd podczas pobierania danych: {e}")
-    finally:
-        if connection.is_connected():
-            cursor.close()
-            connection.close()
 
 fetch_clients()
 
