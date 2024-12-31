@@ -76,7 +76,7 @@ def find_pet():
             cursor.close()
             connection.close()
 
-find_pet()
+# find_pet()
 
 def update_pet():
     pets = find_pet()
@@ -127,4 +127,48 @@ def update_pet():
     except Exception as e:
         print(f"Błąd podczas aktualizowania danych zwierzęcia: {e}")
 
-update_pet()
+# update_pet()
+
+def soft_delete_pet():
+    pets = find_pet()
+    if not pets:
+        return
+    
+    try:
+        pet_id = int(input("Podaj ID zwierzęcia, którego dane chcesz usunąć (soft delete): "))
+        selected_pet = None
+        for pet in pets:
+            if pet[0] == pet_id:
+                selected_pet = pet
+                break
+        if not selected_pet:
+            print(f"Nie znalesiono zwierzęcia o ID {pet_id}.")
+            return
+        print(f"Wybrano zwierzę: {selected_pet[1]} {selected_pet[2]} (ID: {selected_pet[0]})")
+        current_time = datetime.now()
+        connection = create_connection()
+        cursor = connection.cursor()
+
+        query = """
+        UPDATE pets
+        SET soft_delete = %s
+        WHERE idpet = %s AND soft_delete IS NULL
+        """
+
+        cursor.execute(query, (current_time, pet_id))
+        connection.commit()
+
+        if cursor.rowcount > 0:
+            print(f"Zwierzę o ID {pet_id} zostało oznaczone jako usunięte.")
+        else:
+            print(f"Nie udało się oznaczyć zwierzęcia o ID {pet_id} jako usuniętego.")
+
+        cursor.close()
+        connection.close()
+
+    except ValueError:
+        print("Błąd: Podano nieprawidłowe ID zwierzęcia.")
+    except Exception as e:
+        print(f"Błąd podczas oznaczania klienta jako usuniętego: {e}")
+
+soft_delete_pet()
