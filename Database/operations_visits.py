@@ -20,18 +20,23 @@ def fetch_visits():
 
 fetch_visits()
 
-def add_visits(pet_name, doctor, diagnosis):
+from datetime import datetime
+
+def add_visits(pet_name, doctor, diagnosis, date_of_visit):
     try:
         connection = create_connection()
         if connection:
             current_time = datetime.now()
             cursor = connection.cursor()
-            
+
+            # Konwertujemy date_of_visit (string) na obiekt datetime.date
+            date_of_visit = datetime.strptime(date_of_visit, "%Y-%m-%d").date()
+
             query = """
-            INSERT INTO visits (date, pet_name, doctor, diagnosis)
-            VALUES (%s, %s, %s, %s)
+            INSERT INTO visits (date, pet_name, doctor, diagnosis, date_of_visit)
+            VALUES (%s, %s, %s, %s, %s)
             """
-            cursor.execute(query, (current_time, pet_name, doctor, diagnosis))
+            cursor.execute(query, (current_time, pet_name, doctor, diagnosis, date_of_visit))
             connection.commit()
             print("Wizyta została zapisana.")
             cursor.close()
@@ -45,12 +50,14 @@ def add_visits(pet_name, doctor, diagnosis):
 
 def add_visits_data():
     pet_name = input("Podaj nazwę zwierzęcia: ")
-    doctor = input("Podaj nazwisko lekarza u którego odbędzie się ta wizyta:")
+    doctor = input("Podaj nazwisko lekarza u którego odbędzie się ta wizyta: ")
     diagnosis = input("Podaj diagnozę: ")
+    date_of_visit = input("Podaj datę umówionej wizyty (RRRR-MM-DD): ")
 
-    add_visits(pet_name, doctor, diagnosis)
+    add_visits(pet_name, doctor, diagnosis, date_of_visit)
 
 add_visits_data()
+
 
 
 def find_visit():
