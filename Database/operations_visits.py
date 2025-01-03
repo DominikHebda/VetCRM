@@ -1,12 +1,12 @@
 from Database.connection import create_connection
 from datetime import datetime
 
-def fetch_visits():
+def fetch_scheduled_visits():
     try:
         connection = create_connection()
         if connection:
             cursor = connection.cursor()
-            cursor.execute("SELECT * FROM visits")
+            cursor.execute("SELECT * FROM appointments_made")
             results = cursor.fetchall()
             for row in results:
                 print(row)
@@ -18,25 +18,57 @@ def fetch_visits():
             cursor.close()
             connection.close()
 
-fetch_visits()
+fetch_scheduled_visits()
 
 from datetime import datetime
 
-def add_visits(pet_name, doctor, diagnosis, date_of_visit):
+def get_doctor_id(doctor_name):
+    try:
+        # Połączenie z bazą danych
+        connection = create_connection()
+        if connection:
+            cursor = connection.cursor()
+            
+            # Zapytanie SQL, aby znaleźć doctor_id na podstawie nazwiska lekarza
+            query = "SELECT iddoctor FROM doctors WHERE last_name = %s"
+            cursor.execute(query, (doctor_name,))
+            result = cursor.fetchone()
+            
+            if result:
+                return result[0]  # Zwracamy doctor_id, które jest w pierwszej kolumnie wyniku
+            else:
+                print(f"Brak lekarza o nazwisku {doctor_name} w bazie danych.")
+                return None  # Jeśli nie ma lekarza o takim nazwisku, zwracamy None
+    except Exception as e:
+        print(f"Błąd podczas pobierania doctor_id: {e}")
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+    return None  # Zwracamy None, jeśli nie udało się znaleźć lekarza
+
+def add_next_visit(current_time, pet_name, doctor, date_of_visit): 
     try:
         connection = create_connection()
         if connection:
-            current_time = datetime.now()
             cursor = connection.cursor()
 
-            # Konwertujemy date_of_visit (string) na obiekt datetime.date
-            date_of_visit = datetime.strptime(date_of_visit, "%Y-%m-%d").date()
+            # Pobieranie doctor_id na podstawie nazwiska lekarza
+            doctor_id = get_doctor_id(doctor)
+            if doctor_id is None:
+                print("Nie udało się znaleźć identyfikatora lekarza. Wizyta nie zostanie zapisana.")
+                return
 
+            # Konwertowanie daty wizyty (string) na obiekt datetime.date
+            date_of_visit = datetime.strptime(date_of_visit, "%Y-%m-%d").date()
+            formatted_date_of_visit = date_of_visit.strftime("%Y-%m-%d")
+
+            # Przygotowanie zapytania SQL do zapisania wizyty
             query = """
-            INSERT INTO visits (date, pet_name, doctor, diagnosis, date_of_visit)
+            INSERT INTO appointments_made (date, pet_name, doctor, date_of_visit, doctor_id)
             VALUES (%s, %s, %s, %s, %s)
             """
-            cursor.execute(query, (current_time, pet_name, doctor, diagnosis, date_of_visit))
+            cursor.execute(query, (current_time, pet_name, doctor, formatted_date_of_visit, doctor_id))
             connection.commit()
             print("Wizyta została zapisana.")
             cursor.close()
@@ -48,58 +80,138 @@ def add_visits(pet_name, doctor, diagnosis, date_of_visit):
             cursor.close()
             connection.close()
 
-def add_visits_data():
+def add_visit_data():
     pet_name = input("Podaj nazwę zwierzęcia: ")
     doctor = input("Podaj nazwisko lekarza u którego odbędzie się ta wizyta: ")
+    date_of_visit = input("Podaj datę planowanej wizyty (RRRR-MM-DD): ")
+
+    add_next_visit(datetime.now(), pet_name, doctor, date_of_visit)
+
+add_visit_data()
+
+
+def add_diagnosis(pet_name, doctor, diagnosis, current_time, date_of_next_visit):
+    try:
+        connection = create_connection()
+        if connection:
+            
+            cursor = connection.cursor()
+            date_of_visit = datetime.strptime(date_of_visit, "%Y-%m-%d").date()
+            current_time = current_time or datetime.now()
+
+            query = """
+            INSERT INTO diagnoses (pet_name, doctor, diagnosis, diagnosis_date, date_of_next_visit)
+            VALUES (%s, %s, %s, %s, %s)
+            """
+            cursor.execute(query, (pet_name, doctor, diagnosis, current_time, date_of_next_visit))
+            connection.commit()
+            print("Diagnoza została zapisana.")
+            cursor.close()
+            connection.close()
+    except Exception as e:
+        print(f"Błąd podczas zapisywania wizyty: {e}")
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+def add_diagnosis_data():
+    pet_name = input("Podaj nazwę zwierzęcia: ")
+    doctor = input("Podaj swoje imię i nazwisko(lekarza): ")
     diagnosis = input("Podaj diagnozę: ")
-    date_of_visit = input("Podaj datę umówionej wizyty (RRRR-MM-DD): ")
+    date_of_next_visit = input("Podaj datę następnej wizyty (RRRR-MM-DD): ")
 
-    add_visits(pet_name, doctor, diagnosis, date_of_visit)
+    # add_diagnosis(pet_name, doctor, diagnosis, datetime.now(), date_of_next_visit)
 
-add_visits_data()
-
+# add_diagnosis_data()
 
 
 def find_visit():
-    """Szukanie wizyty na podstawie daty i nazwy zwierzęcia."""
     try:
-        # Zbieramy dane od użytkownika
-        visit_date_input = input("Podaj datę szukanej wizyty (rrrr mm dd): ").strip()
-        pet_name = input("Podaj nazwę zwierzęcia będącego na szukanej wizycie: ").strip()
+        date_input = input("Podaj datę szukanej wizyty (RRRR-MM-DD): ")
+        pet_name = input("Podaj nazwę zwierzęcia: ")
 
-        # Poprawiamy format daty, zmieniając ją na rrrr-mm-dd
-        visit_date_parts = visit_date_input.split()
-        if len(visit_date_parts) == 3:
-            formatted_date = f"{visit_date_parts[0]}-{visit_date_parts[1]}-{visit_date_parts[2]}"
-        else:
-            print("Błąd formatu daty. Upewnij się, że podałeś datę w formacie rrrr mm dd.")
+        try:
+            visit_date = datetime.strptime(date_input, "%Y-%m-%d").date()
+        except ValueError:
+            print("Błąd: Nieprawidłowy format daty. Użyj formatu RRRR-MM-DD.")
+            return None
+
+        connection = create_connection()
+        if connection:
+            cursor = connection.cursor()
+            query = """
+            SELECT * FROM visits
+            WHERE date_of_visit = %s AND pet_name = %s
+            """
+            cursor.execute(query, (visit_date, pet_name))
+            result = cursor.fetchall()
+
+            if result:
+                print(f"Znaleziono {len(result)} wizyt:")
+                for row in result:
+                    print(f"ID: {row[0]}, Data: {row[1]}, Nazwa zwierzęcia: {row[2]}, "
+                          f"Nazwisko lekarza przyjmującego: {row[3]}, Diagnoza: {row[4]}, "
+                          f"Umówiona wizyta: {row[5]}")
+                return result
+            else:
+                print("Brak wizyt na podaną datę.")
+                return None
+    except Exception as e:
+        print(f"Błąd podczas wyszukiwania wizyt: {e}")
+    finally:
+        if connection and connection.is_connected():
+            cursor.close()
+            connection.close()
+
+# find_visit()
+
+
+def update_visit():
+    visits = find_visit()
+    if not visits:
+        return
+    
+    try:
+        visit_id = int(input("Podaj ID wizyty której dane chcesz zaktualizować: "))
+        selected_visit = None
+        for visit in visits:
+            if visit[0] == visit_id:
+                selected_visit = visit
+                break
+        if not selected_visit:
+            print("Nie znaleziono wizyty o podanym ID.")
             return
+        
+        print(f"Wybrano wizytę: {selected_visit[1]} {selected_visit[2]} (ID: {selected_visit[0]})")
 
-        # Tworzymy połączenie z bazą danych
+        new_pet_name = input(f"Podaj nową nazwę zwierzęcia ({selected_visit[2]}) (pozostaw puste, aby nie zmieniać): ")
+        new_doctor = input(f"Podaj nowe nazwisko lekarza({selected_visit[3]}) (pozostaw puste, aby nie zmieniać): ")
+        new_diagnosis = input(f"Podaj nową diagnozę ({selected_visit[4]}) (pozostaw puste, aby nie zmieniać): ")
+
+        # Jeśli użytkownik nie podał nowych danych, pozostawiamy stare wartości
+        new_pet_name = new_pet_name or selected_visit[2]
+        new_doctor = new_doctor or selected_visit[3]
+        new_diagnosis = new_diagnosis or selected_visit[4]
+
         connection = create_connection()
         cursor = connection.cursor()
 
-        # Zapytanie SQL z parametrami
         query = """
-        SELECT * FROM visits
-        WHERE date = %s AND pet_name = %s
+        UPDATE visits
+        SET pet_name = %s, doctor = %s, diagnosis = %s
+        WHERE idvisit = %s
         """
-        # Wykonanie zapytania z przekazaniem parametrów
-        cursor.execute(query, (formatted_date, pet_name))
-
-        results = cursor.fetchall()
-
-        if results:
-            print(f"Znaleziono {len(results)} wizyt:")
-            for row in results:
-                print(f"ID: {row[0]}, Data: {row[1]}, Nazwa zwierzęcia: {row[2]}, Nazwisko lekarza przyjmującego: {row[3]}, Diagnoza: {row[4]}")
-        else:
-            print("Nie znaleziono wizyt o podanych danych.")
+        cursor.execute(query, (new_pet_name, new_doctor, new_diagnosis, visit_id))
+        connection.commit()
+        print(f"Dane wizyty {selected_visit[1]} {selected_visit[2]} zostały zaktualizowane.")
 
         cursor.close()
         connection.close()
 
+    except ValueError:
+        print("Błąd: Podano nieprawidłowe ID.")
     except Exception as e:
-        print(f"Błąd podczas pobierania danych: {e}")
+        print(f"Błąd podczas aktualizowania danych wizyty: {e}")
 
-find_visit()
+# update_visit()
