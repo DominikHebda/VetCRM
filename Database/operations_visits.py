@@ -20,6 +20,7 @@ def fetch_scheduled_visits():
 
 fetch_scheduled_visits()
 
+# POBIERANIE ID DOKTORA
 def get_doctor_id(doctor_name):
     try:
         connection = create_connection()
@@ -43,6 +44,7 @@ def get_doctor_id(doctor_name):
             connection.close()
     return None  
 
+# DODAWANIE NOWEJ WIZYTY PRZEZ RECEPCJONISTKĘ
 def add_next_visit(current_time, pet_name, doctor, date_of_visit): 
     try:
         connection = create_connection()
@@ -82,7 +84,7 @@ def add_visit_data():
 
 # add_visit_data()
 
-
+# DODAWANIE DIAGNOZY PRZEZ LEKARZA
 def add_diagnosis(pet_name, doctor, diagnosis, current_time, date_of_next_visit):
     try:
         connection = create_connection()
@@ -118,38 +120,33 @@ def add_diagnosis_data():
     diagnosis = input("Podaj diagnozę: ")
     date_of_next_visit = input("Podaj datę następnej wizyty (RRRR-MM-DD): ")
 
-    add_diagnosis(pet_name, doctor, diagnosis, datetime.now(), date_of_next_visit)
+    # add_diagnosis(pet_name, doctor, diagnosis, datetime.now(), date_of_next_visit)
 
-add_diagnosis_data()
+# add_diagnosis_data()
 
 
-def find_visit():
+def find_next_visit():
     try:
-        date_input = input("Podaj datę szukanej wizyty (RRRR-MM-DD): ")
         pet_name = input("Podaj nazwę zwierzęcia: ")
-
-        try:
-            visit_date = datetime.strptime(date_input, "%Y-%m-%d").date()
-        except ValueError:
-            print("Błąd: Nieprawidłowy format daty. Użyj formatu RRRR-MM-DD.")
-            return None
+        doctor = input("Podaj nazwisko lekarza: ")
+        
 
         connection = create_connection()
         if connection:
             cursor = connection.cursor()
             query = """
-            SELECT * FROM visits
-            WHERE date_of_visit = %s AND pet_name = %s
+            SELECT * FROM appointments_made
+            WHERE pet_name = %s AND doctor = %s
             """
-            cursor.execute(query, (visit_date, pet_name))
+            cursor.execute(query, (pet_name, doctor))
             result = cursor.fetchall()
 
             if result:
                 print(f"Znaleziono {len(result)} wizyt:")
                 for row in result:
                     print(f"ID: {row[0]}, Data: {row[1]}, Nazwa zwierzęcia: {row[2]}, "
-                          f"Nazwisko lekarza przyjmującego: {row[3]}, Diagnoza: {row[4]}, "
-                          f"Umówiona wizyta: {row[5]}")
+                          f"Nazwisko lekarza przyjmującego: {row[3]}, "
+                          f"Umówiona wizyta na: {row[4]}")
                 return result
             else:
                 print("Brak wizyt na podaną datę.")
@@ -161,11 +158,11 @@ def find_visit():
             cursor.close()
             connection.close()
 
-# find_visit()
+find_next_visit()
 
 
 def update_visit():
-    visits = find_visit()
+    visits = find_next_visit()
     if not visits:
         return
     
