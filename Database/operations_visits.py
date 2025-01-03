@@ -20,32 +20,28 @@ def fetch_scheduled_visits():
 
 fetch_scheduled_visits()
 
-from datetime import datetime
-
 def get_doctor_id(doctor_name):
     try:
-        # Połączenie z bazą danych
         connection = create_connection()
         if connection:
             cursor = connection.cursor()
             
-            # Zapytanie SQL, aby znaleźć doctor_id na podstawie nazwiska lekarza
             query = "SELECT iddoctor FROM doctors WHERE last_name = %s"
             cursor.execute(query, (doctor_name,))
             result = cursor.fetchone()
             
             if result:
-                return result[0]  # Zwracamy doctor_id, które jest w pierwszej kolumnie wyniku
+                return result[0] 
             else:
                 print(f"Brak lekarza o nazwisku {doctor_name} w bazie danych.")
-                return None  # Jeśli nie ma lekarza o takim nazwisku, zwracamy None
+                return None 
     except Exception as e:
         print(f"Błąd podczas pobierania doctor_id: {e}")
     finally:
         if connection.is_connected():
             cursor.close()
             connection.close()
-    return None  # Zwracamy None, jeśli nie udało się znaleźć lekarza
+    return None  
 
 def add_next_visit(current_time, pet_name, doctor, date_of_visit): 
     try:
@@ -53,17 +49,14 @@ def add_next_visit(current_time, pet_name, doctor, date_of_visit):
         if connection:
             cursor = connection.cursor()
 
-            # Pobieranie doctor_id na podstawie nazwiska lekarza
             doctor_id = get_doctor_id(doctor)
             if doctor_id is None:
                 print("Nie udało się znaleźć identyfikatora lekarza. Wizyta nie zostanie zapisana.")
                 return
 
-            # Konwertowanie daty wizyty (string) na obiekt datetime.date
             date_of_visit = datetime.strptime(date_of_visit, "%Y-%m-%d").date()
             formatted_date_of_visit = date_of_visit.strftime("%Y-%m-%d")
 
-            # Przygotowanie zapytania SQL do zapisania wizyty
             query = """
             INSERT INTO appointments_made (date, pet_name, doctor, date_of_visit, doctor_id)
             VALUES (%s, %s, %s, %s, %s)
@@ -85,25 +78,29 @@ def add_visit_data():
     doctor = input("Podaj nazwisko lekarza u którego odbędzie się ta wizyta: ")
     date_of_visit = input("Podaj datę planowanej wizyty (RRRR-MM-DD): ")
 
-    add_next_visit(datetime.now(), pet_name, doctor, date_of_visit)
+    # add_next_visit(datetime.now(), pet_name, doctor, date_of_visit)
 
-add_visit_data()
+# add_visit_data()
 
 
 def add_diagnosis(pet_name, doctor, diagnosis, current_time, date_of_next_visit):
     try:
         connection = create_connection()
         if connection:
-            
             cursor = connection.cursor()
-            date_of_visit = datetime.strptime(date_of_visit, "%Y-%m-%d").date()
+
+            doctor_id = get_doctor_id(doctor)
+            if doctor_id is None:
+                print("Nie udało się znaleźć identyfikatora lekarza. Wizyta nie zostanie zapisana.")
+                return
+            date_of_next_visit = datetime.strptime(date_of_next_visit, "%Y-%m-%d").date()
             current_time = current_time or datetime.now()
 
             query = """
-            INSERT INTO diagnoses (pet_name, doctor, diagnosis, diagnosis_date, date_of_next_visit)
-            VALUES (%s, %s, %s, %s, %s)
+            INSERT INTO diagnoses (pet_name, doctor, diagnosis, diagnosis_date, date_of_next_visit, doctor_id)
+            VALUES (%s, %s, %s, %s, %s, %s)
             """
-            cursor.execute(query, (pet_name, doctor, diagnosis, current_time, date_of_next_visit))
+            cursor.execute(query, (pet_name, doctor, diagnosis, current_time, date_of_next_visit, doctor_id))
             connection.commit()
             print("Diagnoza została zapisana.")
             cursor.close()
@@ -117,13 +114,13 @@ def add_diagnosis(pet_name, doctor, diagnosis, current_time, date_of_next_visit)
 
 def add_diagnosis_data():
     pet_name = input("Podaj nazwę zwierzęcia: ")
-    doctor = input("Podaj swoje imię i nazwisko(lekarza): ")
+    doctor = input("Podaj nazwisko lekarza: ")
     diagnosis = input("Podaj diagnozę: ")
     date_of_next_visit = input("Podaj datę następnej wizyty (RRRR-MM-DD): ")
 
-    # add_diagnosis(pet_name, doctor, diagnosis, datetime.now(), date_of_next_visit)
+    add_diagnosis(pet_name, doctor, diagnosis, datetime.now(), date_of_next_visit)
 
-# add_diagnosis_data()
+add_diagnosis_data()
 
 
 def find_visit():
