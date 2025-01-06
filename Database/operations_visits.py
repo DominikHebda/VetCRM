@@ -44,12 +44,40 @@ def get_doctor_id(doctor_name):
             connection.close()
     return None  
 
-# DODAWANIE NOWEJ WIZYTY PRZEZ RECEPCJONISTKĘ
-def add_next_visit(current_time, pet_name, doctor, date_of_visit): 
+def get_client_id(client_name):
     try:
         connection = create_connection()
         if connection:
             cursor = connection.cursor()
+            
+            query = "SELECT idClient FROM client WHERE last_name = %s"
+            cursor.execute(query, (client_name,))
+            result = cursor.fetchone()
+            
+            if result:
+                return result[0] 
+            else:
+                print(f"Brak klienta o nazwisku {client_name} w bazie danych.")
+                return None 
+    except Exception as e:
+        print(f"Błąd podczas pobierania doctor_id: {e}")
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+    return None 
+
+# DODAWANIE NOWEJ WIZYTY PRZEZ RECEPCJONISTKĘ
+def add_next_visit(current_time, last_name_client, pet_name, doctor, date_of_visit): 
+    try:
+        connection = create_connection()
+        if connection:
+            cursor = connection.cursor()
+
+            client_id = get_client_id(last_name_client)
+            if client_id is None:
+                print("Nie udało się znaleźć identyfikatora klienta. Wizyta nie zostanie zapisana.")
+                return
 
             doctor_id = get_doctor_id(doctor)
             if doctor_id is None:
@@ -60,10 +88,10 @@ def add_next_visit(current_time, pet_name, doctor, date_of_visit):
             formatted_date_of_visit = date_of_visit.strftime("%Y-%m-%d")
 
             query = """
-            INSERT INTO appointments_made (date, pet_name, doctor, date_of_visit, doctor_id)
-            VALUES (%s, %s, %s, %s, %s)
+            INSERT INTO appointments_made (date, last_name_client, pet_name, doctor, date_of_visit, doctor_id, client_id)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
             """
-            cursor.execute(query, (current_time, pet_name, doctor, formatted_date_of_visit, doctor_id))
+            cursor.execute(query, (current_time, last_name_client, pet_name, doctor, formatted_date_of_visit, doctor_id, client_id))
             connection.commit()
             print("Wizyta została zapisana.")
             cursor.close()
@@ -76,13 +104,14 @@ def add_next_visit(current_time, pet_name, doctor, date_of_visit):
             connection.close()
 
 def add_visit_data():
+    last_name_client = input("Podaj nazwisko klienta: ")
     pet_name = input("Podaj nazwę zwierzęcia: ")
     doctor = input("Podaj nazwisko lekarza u którego odbędzie się ta wizyta: ")
     date_of_visit = input("Podaj datę planowanej wizyty (RRRR-MM-DD): ")
 
-    # add_next_visit(datetime.now(), pet_name, doctor, date_of_visit)
+    add_next_visit(datetime.now(), last_name_client, pet_name, doctor, date_of_visit)
 
-# add_visit_data()
+add_visit_data()
 
 # DODAWANIE DIAGNOZY PRZEZ LEKARZA
 def add_diagnosis(pet_name, doctor, diagnosis, current_time, date_of_next_visit):
@@ -124,11 +153,14 @@ def add_diagnosis_data():
 
 # add_diagnosis_data()
 
-
+# WYSZUKANIE UMÓWIONEJ WIZYTY KLIENTOWI
 def find_next_visit():
     try:
         pet_name = input("Podaj nazwę zwierzęcia: ")
         doctor = input("Podaj nazwisko lekarza: ")
+        # dodanie imienia i nazwiska klienta do wyszukiwania
+        first_name_client = input("Podaj imię klienta: ")
+        last_name_client = input("Podaj nazwisko klienta: ")
         
 
         connection = create_connection()
@@ -136,17 +168,17 @@ def find_next_visit():
             cursor = connection.cursor()
             query = """
             SELECT * FROM appointments_made
-            WHERE pet_name = %s AND doctor = %s
+            WHERE pet_name = %s AND doctor = %s OR first_name_client = %s AND last_name_client = %s
             """
-            cursor.execute(query, (pet_name, doctor))
+            cursor.execute(query, (first_name_client, last_name_client, pet_name, doctor))
             result = cursor.fetchall()
 
             if result:
                 print(f"Znaleziono {len(result)} wizyt:")
                 for row in result:
-                    print(f"ID: {row[0]}, Data: {row[1]}, Nazwa zwierzęcia: {row[2]}, "
+                    print(f"Nazwa zwierzęcia: {row[2]}, "
                           f"Nazwisko lekarza przyjmującego: {row[3]}, "
-                          f"Umówiona wizyta na: {row[4]}")
+                          f"Wizyta umówiona na: {row[4]}")
                 return result
             else:
                 print("Brak wizyt na podaną datę.")
@@ -158,7 +190,7 @@ def find_next_visit():
             cursor.close()
             connection.close()
 
-find_next_visit()
+# find_next_visit()
 
 
 def update_visit():
