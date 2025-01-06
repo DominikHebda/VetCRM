@@ -109,9 +109,9 @@ def add_visit_data():
     doctor = input("Podaj nazwisko lekarza u którego odbędzie się ta wizyta: ")
     date_of_visit = input("Podaj datę planowanej wizyty (RRRR-MM-DD): ")
 
-    add_next_visit(datetime.now(), last_name_client, pet_name, doctor, date_of_visit)
+    # add_next_visit(datetime.now(), last_name_client, pet_name, doctor, date_of_visit)
 
-add_visit_data()
+# add_visit_data()
 
 # DODAWANIE DIAGNOZY PRZEZ LEKARZA
 def add_diagnosis(pet_name, doctor, diagnosis, current_time, date_of_next_visit):
@@ -156,29 +156,27 @@ def add_diagnosis_data():
 # WYSZUKANIE UMÓWIONEJ WIZYTY KLIENTOWI
 def find_next_visit():
     try:
+        last_name_client = input("Podaj nazwisko klienta: ")
         pet_name = input("Podaj nazwę zwierzęcia: ")
         doctor = input("Podaj nazwisko lekarza: ")
-        # dodanie imienia i nazwiska klienta do wyszukiwania
-        first_name_client = input("Podaj imię klienta: ")
-        last_name_client = input("Podaj nazwisko klienta: ")
         
-
         connection = create_connection()
         if connection:
             cursor = connection.cursor()
             query = """
             SELECT * FROM appointments_made
-            WHERE pet_name = %s AND doctor = %s OR first_name_client = %s AND last_name_client = %s
+            WHERE last_name_client = %s AND pet_name = %s OR doctor = %s 
             """
-            cursor.execute(query, (first_name_client, last_name_client, pet_name, doctor))
+            cursor.execute(query, (last_name_client, pet_name, doctor))
             result = cursor.fetchall()
 
             if result:
                 print(f"Znaleziono {len(result)} wizyt:")
                 for row in result:
-                    print(f"Nazwa zwierzęcia: {row[2]}, "
-                          f"Nazwisko lekarza przyjmującego: {row[3]}, "
-                          f"Wizyta umówiona na: {row[4]}")
+                    print(f"Nazwisko klienta: {row[2]}, "
+                          f"Nazwa zwierzęcia: {row[3]}, "
+                          f"Nazwisko lekarza przyjmującego: {row[4]}, "
+                          f"Data umówionej wizyty: {row[5]}")
                 return result
             else:
                 print("Brak wizyt na podaną datę.")
@@ -190,7 +188,7 @@ def find_next_visit():
             cursor.close()
             connection.close()
 
-# find_next_visit()
+find_next_visit()
 
 
 def update_visit():
