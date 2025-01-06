@@ -179,7 +179,7 @@ def find_next_visit():
                           f"Data umówionej wizyty: {row[5]}")
                 return result
             else:
-                print("Brak wizyt na podaną datę.")
+                print("Brak wizyt na podane dane.")
                 return None
     except Exception as e:
         print(f"Błąd podczas wyszukiwania wizyt: {e}")
@@ -191,59 +191,55 @@ def find_next_visit():
 # find_next_visit()
 
 
-def update_visit():
-    visits = find_next_visit()
-    if not visits:
-        return
-    
+def update_next_visit():
     try:
         visit_id = int(input("Podaj ID wizyty której dane chcesz zaktualizować: "))
-        selected_visit = None
-        for visit in visits:
-            if visit[0] == visit_id:
-                selected_visit = visit
-                break
-        if not selected_visit:
-            print("Nie znaleziono wizyty o podanym ID.")
-            return
         
-        print(f"Wybrano wizytę: {selected_visit[1]} {selected_visit[2]} (ID: {selected_visit[0]})")
-
-        new_pet_name = input(f"Podaj nową nazwę zwierzęcia ({selected_visit[2]}) (pozostaw puste, aby nie zmieniać): ")
-        new_doctor = input(f"Podaj nowe nazwisko lekarza({selected_visit[3]}) (pozostaw puste, aby nie zmieniać): ")
-        new_diagnosis = input(f"Podaj nową diagnozę ({selected_visit[4]}) (pozostaw puste, aby nie zmieniać): ")
-
-        # Jeśli użytkownik nie podał nowych danych, pozostawiamy stare wartości
-        new_pet_name = new_pet_name or selected_visit[2]
-        new_doctor = new_doctor or selected_visit[3]
-        new_diagnosis = new_diagnosis or selected_visit[4]
-
         connection = create_connection()
-        cursor = connection.cursor()
+        if connection:
+            cursor = connection.cursor()
 
-        query = """
-        UPDATE visits
-        SET pet_name = %s, doctor = %s, diagnosis = %s
-        WHERE idvisit = %s
-        """
-        cursor.execute(query, (new_pet_name, new_doctor, new_diagnosis, visit_id))
-        connection.commit()
-        print(f"Dane wizyty {selected_visit[1]} {selected_visit[2]} zostały zaktualizowane.")
+            cursor.execute("SELECT * FROM appointments_made WHERE idappointments = %s", (visit_id,))
+            result = cursor.fetchone()
 
-        cursor.close()
-        connection.close()
+            if result: 
+                print(f"Znaleziono wizytę o podanym ID: {result}")
+                selected_visit = result 
 
+                new_last_name_client = input(f"Podaj nowe nazwisko klienta ({selected_visit[2]}) (pozostaw puste, aby nie zmieniać): ")
+                new_pet_name = input(f"Podaj nową nazwę zwierzęcia ({selected_visit[3]}) (pozostaw puste, aby nie zmieniać): ")
+                new_doctor = input(f"Podaj nowe nazwisko lekarza ({selected_visit[4]}) (pozostaw puste, aby nie zmieniać): ")
+                new_diagnosis = input(f"Podaj nową datę wizyty ({selected_visit[5]}) (pozostaw puste, aby nie zmieniać): ")
+
+                new_last_name_client = new_last_name_client or selected_visit[2]
+                new_pet_name = new_pet_name or selected_visit[3]
+                new_doctor = new_doctor or selected_visit[4]
+                new_diagnosis = new_diagnosis or selected_visit[5]
+
+                cursor.execute("""
+                UPDATE appointments_made
+                SET last_name_client = %s, pet_name = %s, doctor = %s, date_of_visit = %s
+                WHERE idappointments = %s
+                """, (new_last_name_client, new_pet_name, new_doctor, new_diagnosis, visit_id))
+
+                connection.commit()
+                print(f"Dane wizyty o ID {visit_id} zostały zaktualizowane.")
+            else:
+                print(f"Nie znaleziono wizyty o ID {visit_id}.")
+            
+            cursor.close()
+            connection.close()
     except ValueError:
         print("Błąd: Podano nieprawidłowe ID.")
     except Exception as e:
         print(f"Błąd podczas aktualizowania danych wizyty: {e}")
 
-# update_visit()
+update_next_visit()
+
 
 def soft_delete_next_visit():
     visit_id = int(input("Podaj ID wizyty którą chcesz usunąć (soft delete): "))
     
-    # Sprawdź w bazie danych, czy istnieje wizyta o podanym ID
     connection = create_connection()
     cursor = connection.cursor()
     cursor.execute("SELECT * FROM appointments_made WHERE idappointments = %s", (visit_id,))
@@ -257,11 +253,10 @@ def soft_delete_next_visit():
 
     current_time = datetime.now()
 
-    # Wykonaj soft delete
     query = """
     UPDATE appointments_made
     SET soft_delete = %s
-    WHERE idappointments = %s AND soft_delete IS NULL
+    WHERE idvisits = %s AND soft_delete IS NULL
     """
     cursor.execute(query, (current_time, visit_id))
     connection.commit()
@@ -274,4 +269,4 @@ def soft_delete_next_visit():
     cursor.close()
     connection.close()
 
-soft_delete_next_visit()
+# soft_delete_next_visit()
