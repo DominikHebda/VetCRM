@@ -188,7 +188,7 @@ def find_next_visit():
             cursor.close()
             connection.close()
 
-find_next_visit()
+# find_next_visit()
 
 
 def update_visit():
@@ -239,3 +239,39 @@ def update_visit():
         print(f"Błąd podczas aktualizowania danych wizyty: {e}")
 
 # update_visit()
+
+def soft_delete_next_visit():
+    visit_id = int(input("Podaj ID wizyty którą chcesz usunąć (soft delete): "))
+    
+    # Sprawdź w bazie danych, czy istnieje wizyta o podanym ID
+    connection = create_connection()
+    cursor = connection.cursor()
+    cursor.execute("SELECT * FROM appointments_made WHERE idappointments = %s", (visit_id,))
+    selected_visit = cursor.fetchone()
+
+    if not selected_visit:
+        print(f"Nie znaleziono wizyty o Id {visit_id}.")
+        return
+
+    print(f"Wybrano wizytę: {selected_visit[2]} {selected_visit[3]} (ID: {selected_visit[0]})")
+
+    current_time = datetime.now()
+
+    # Wykonaj soft delete
+    query = """
+    UPDATE appointments_made
+    SET soft_delete = %s
+    WHERE idappointments = %s AND soft_delete IS NULL
+    """
+    cursor.execute(query, (current_time, visit_id))
+    connection.commit()
+
+    if cursor.rowcount > 0:
+        print(f"Wizyta o ID {visit_id} została oznaczona jako usunięta.")
+    else:
+        print(f"Nie udało się oznaczyć wizyty o ID {visit_id} jako usuniętej.")
+    
+    cursor.close()
+    connection.close()
+
+soft_delete_next_visit()
