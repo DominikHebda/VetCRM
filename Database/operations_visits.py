@@ -315,3 +315,21 @@ def soft_delete_next_visit():
     connection.close()
 
 # soft_delete_next_visit()
+
+def fetch_visits_details(visit_id):
+    print(f"Fetching details for visit ID: {visit_id}")
+    try:
+        connection = create_connection()
+        if connection:
+            cursor = connection.cursor()
+            query = "SELECT * FROM appointments_made WHERE idappointments = %s"
+            cursor.execute(query, (visit_id,))
+            result = cursor.fetchone()
+            return result
+    except Exception as e:
+        print(f"Błąd podczas pobierania idappointments: {e}")
+    finally: 
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+    return None
