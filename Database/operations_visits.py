@@ -11,6 +11,7 @@ def fetch_scheduled_visits():
             for row in results:
                 print(row)
             cursor.close()
+            return results
     except Exception as e:
         print(f"Błąd podczas pobierania danych: {e}")
     finally:
@@ -18,7 +19,7 @@ def fetch_scheduled_visits():
             cursor.close()
             connection.close()
 
-fetch_scheduled_visits()
+# fetch_scheduled_visits()
 
 # POBIERANIE ID DOKTORA
 def get_doctor_id(doctor_name):
@@ -278,7 +279,7 @@ def update_diagnosis():
     except Exception as e:
         print(f"Błąd podczas aktualizowania danych wizyty: {e}")
 
-update_diagnosis()
+# update_diagnosis()
 
 # USUWANIE UMÓWIONEJ WIZYTY
 def soft_delete_next_visit():

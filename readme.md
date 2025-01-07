@@ -5,9 +5,17 @@ Directory structure:
 
 ```
 VetCRM
+├─ Database
+│  ├─ connection.py
+│  ├─ operations_client.py
+│  ├─ operations_doctors.py
+│  ├─ operations_pets.py
+│  ├─ operations_visits.py
+│  └─ __pycache__
+│     ├─ connection.cpython-312.pyc
+│     └─ db_connection.cpython-312.pyc
 ├─ Include
 ├─ Lib
-│  └─
 ├─ pyvenv.cfg
 ├─ readme.md
 └─ Scripts
@@ -16,6 +24,7 @@ VetCRM
    ├─ Activate.ps1
    ├─ actors.py
    ├─ client.py
+   ├─ database.py
    ├─ deactivate.bat
    ├─ doctor.py
    ├─ entry.py
@@ -35,12 +44,5 @@ VetCRM
    ├─ vetcrm.py
    ├─ view.py
    └─ __pycache__
-      ├─ actors.cpython-312.pyc
-      ├─ client.cpython-312.pyc
-      ├─ doctor.cpython-312.pyc
-      ├─ entry.cpython-312.pyc
-      ├─ receptionist.cpython-312.pyc
-      ├─ vetcrm.cpython-312.pyc
-      └─ view.cpython-312.pyc
 
 ```
