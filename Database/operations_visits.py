@@ -333,3 +333,26 @@ def fetch_visits_details(visit_id):
             cursor.close()
             connection.close()
     return None
+
+def update_visit_in_db(visit_id, date, client_last_name, pet_name, doctor_name, date_of_visit):
+    try:
+        connection = create_connection()
+        if connection:
+            cursor = connection.cursor()
+            
+            cursor.execute("""
+            UPDATE appointments_made 
+            SET date = %s, last_name_client = %s, pet_name = %s, doctor = %s, date_of_visit = %s 
+            WHERE idappointments = %s
+            """, (date, client_last_name, pet_name, doctor_name, date_of_visit, visit_id))
+            
+            connection.commit()
+            return True
+    except Exception as e:
+        print(f"Błąd podczas aktualizacji wizyty: {e}")
+    finally: 
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+    return False
+
