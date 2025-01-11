@@ -1,6 +1,7 @@
 from Database.connection import create_connection
 from datetime import datetime
 from urllib.parse import unquote
+from datetime import timedelta
 
 
 def fetch_scheduled_visits():
@@ -336,24 +337,47 @@ def fetch_visits_details(visit_id):
             connection.close()
     return None
 
-def update_visit_in_db(visit_id, date, client_last_name, pet_name, doctor_name, date_of_visit, visit_time):
+def format_visit_time(visit_time):
+    if isinstance(visit_time, timedelta):
+        hours = visit_time.seconds // 3600 
+        minutes = (visit_time.seconds % 3600) // 60 
+        return f"{hours:02}:{minutes:02}"
+
+    elif isinstance(visit_time, (int, float)):
+        hours = visit_time // 3600  
+        minutes = (visit_time % 3600) // 60  
+        return f"{int(hours):02}:{int(minutes):02}"
+
+    elif isinstance(visit_time, str) and len(visit_time) > 5:
+        return visit_time[:5]
+
+    return visit_time
+
+
+def update_visit_in_db(visit_id, current_date_time, client_last_name, pet_name, doctor_name, date_of_visit, visit_time):
     try:
         client_last_name = unquote(client_last_name)
         pet_name = unquote(pet_name)
         doctor_name = unquote(doctor_name)
 
-
         visit_time = unquote(visit_time)
 
+        if visit_time.count(":") == 2:
+            visit_time = visit_time[:5] 
+
         if not visit_time:
-            visit_time = fetch_visits_details(visit_id)[5].strftime('%H:%M')  
+            visit_time = fetch_visits_details(visit_id)[5].strftime('%H:%M:%S')  
+
         if visit_time.count(':') == 1:
             visit_time += ":00"
 
         full_date_time = f"{date_of_visit} {visit_time}"
 
         full_date_time = datetime.strptime(full_date_time, '%Y-%m-%d %H:%M:%S')
-        print(f"Before update - client_last_name: {client_last_name}, pet_name: {pet_name}, doctor_name: {doctor_name}")
+
+        print(f"Before update - client_last_name: {client_last_name}, pet_name: {pet_name}, doctor_name: {doctor_name}, visit_time: {visit_time}")
+
+        current_date_time = datetime.now()
 
         connection = create_connection()
         if connection:
@@ -363,7 +387,7 @@ def update_visit_in_db(visit_id, date, client_last_name, pet_name, doctor_name, 
             UPDATE appointments_made 
             SET date = %s, last_name_client = %s, pet_name = %s, doctor = %s, date_of_visit = %s, visit_time = %s
             WHERE idappointments = %s
-            """, (date, client_last_name, pet_name, doctor_name, full_date_time, visit_time, visit_id))
+            """, (current_date_time, client_last_name, pet_name, doctor_name, full_date_time, visit_time, visit_id))
             
             connection.commit()
             return True

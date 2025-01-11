@@ -1,8 +1,8 @@
-from Database.operations_visits import fetch_scheduled_visits, fetch_visits_details, update_visit_in_db
+from Database.operations_visits import fetch_scheduled_visits, fetch_visits_details, update_visit_in_db, format_visit_time
 from http.server import SimpleHTTPRequestHandler, HTTPServer
 
 def render_visits_to_html():
-    visits = fetch_scheduled_visits()  
+    visits = fetch_scheduled_visits()  # Pobranie wizyt
     if not visits:
         return "<p>Brak zaplanowanych wizyt.</p>"
 
@@ -16,7 +16,7 @@ def render_visits_to_html():
                 <th>Nazwa zwierzęcia</th>
                 <th>Lekarz</th>
                 <th>Data następnej wizyty</th>
-                <th>Godzina wizyty<th>
+                <th>Godzina wizyty</th>
                 <th>Pokaż szczegóły</th>
             </tr>
         </thead>
@@ -26,14 +26,17 @@ def render_visits_to_html():
     for visit in visits:
         visit_id = visit[0]  
         date = visit[1]  
-        client_last_name = visit[2]  
-        pet_name = visit[3] 
-        doctor_name = visit[4]  
-        date_of_visit = visit[5]
-        visit_time = visit[10]
+        client_last_name = visit[2] 
+        pet_name = visit[3]  
+        doctor_name = visit[4] 
+        date_of_visit = visit[5]  
+        visit_time = visit[10]  
+
+        visit_time = format_visit_time(visit_time)
 
         visit_details_link = f'<a href="/visit/{visit_id}">Pokaż szczegóły</a>'
         visit_edit_link = f'<a href="/update/{visit_id}">Edytuj wizytę</a>'
+
         visits_html += f"""
         <tr>
             <td>{visit_id}</td>
