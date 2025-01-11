@@ -16,6 +16,7 @@ def render_visits_to_html():
                 <th>Nazwa zwierzęcia</th>
                 <th>Lekarz</th>
                 <th>Data następnej wizyty</th>
+                <th>Godzina wizyty<th>
                 <th>Pokaż szczegóły</th>
             </tr>
         </thead>
@@ -29,6 +30,7 @@ def render_visits_to_html():
         pet_name = visit[3] 
         doctor_name = visit[4]  
         date_of_visit = visit[5]
+        visit_time = visit[10]
 
         visit_details_link = f'<a href="/visit/{visit_id}">Pokaż szczegóły</a>'
         visit_edit_link = f'<a href="/update/{visit_id}">Edytuj wizytę</a>'
@@ -40,6 +42,7 @@ def render_visits_to_html():
             <td>{pet_name}</td>
             <td>{doctor_name}</td>
             <td>{date_of_visit}</td>
+            <td>{visit_time}</td>
             <td>{visit_details_link}</td>
             <td>{visit_edit_link}</td>
         </tr>
@@ -65,6 +68,7 @@ def render_visit_details(visit_id):
     pet_name = visit[3]
     doctor_name = visit[4]
     date_of_visit = visit[5]
+    visit_time = visit[10]
 
     visit_details_html = f"""
     <h1>Szczegóły wizyty</h1>
@@ -74,6 +78,7 @@ def render_visit_details(visit_id):
     <p><strong>Nazwa zwierzęcia:</strong> {pet_name}</p>
     <p><strong>Lekarz:</strong> {doctor_name}</p>
     <p><strong>Data następnej wizyty:</strong> {date_of_visit}</p>
+    <p><strong>Godzina wizyty:</strong> {visit_time}</p>
     <p><a href="/update/{visit_id}">Edytuj wizytę</a></p>
     <p><a href="/">Powrót do listy wizyt</a></p>
     """
@@ -91,11 +96,13 @@ def render_visit_edit_form(visit_id):
     pet_name = visit[3]
     doctor_name = visit[4]
     date_of_visit = visit[5]
+    visit_time = visit[10]
 
     visit_edit_form_html = f"""
     <h1>Edytuj wizytę</h1>
-    <form method="POST" action="/update/{visit_id}">
-        <label for="date">Data wizyty:</label>
+    <form method="POST" action="/update/{visit_id}" enctype="application/x-www-form-urlencoded; charset=UTF-8>
+    <meta charset="UTF-8">
+        <label for="date">Data utworzenia wizyty:</label>
         <input type="text" id="date" name="date" value="{date}" /><br><br>
         
         <label for="client_last_name">Nazwisko klienta:</label>
@@ -109,7 +116,10 @@ def render_visit_edit_form(visit_id):
         
         <label for="date_of_visit">Data następnej wizyty:</label>
         <input type="text" id="date_of_visit" name="date_of_visit" value="{date_of_visit}" /><br><br>
-        
+
+        <label for="visit_time">Godzina wizyty:</label>
+        <input type="time" id="visit_time" name="visit_time" value="{visit_time}" /><br><br>
+
         <input type="submit" value="Zaktualizuj wizytę" />
     </form>
     <p><a href="/">Powrót do listy wizyt</a></p>
@@ -177,7 +187,8 @@ class MyHandler(SimpleHTTPRequestHandler):
                     data.get('client_last_name'),
                     data.get('pet_name'),
                     data.get('doctor_name'),
-                    data.get('date_of_visit')
+                    data.get('date_of_visit'),
+                    data.get('visit_time')
                 )
 
                 if updated:

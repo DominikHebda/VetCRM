@@ -1,5 +1,7 @@
 from Database.connection import create_connection
 from datetime import datetime
+from urllib.parse import unquote
+
 
 def fetch_scheduled_visits():
     try:
@@ -334,17 +336,34 @@ def fetch_visits_details(visit_id):
             connection.close()
     return None
 
-def update_visit_in_db(visit_id, date, client_last_name, pet_name, doctor_name, date_of_visit):
+def update_visit_in_db(visit_id, date, client_last_name, pet_name, doctor_name, date_of_visit, visit_time):
     try:
+        client_last_name = unquote(client_last_name)
+        pet_name = unquote(pet_name)
+        doctor_name = unquote(doctor_name)
+
+
+        visit_time = unquote(visit_time)
+
+        if not visit_time:
+            visit_time = fetch_visits_details(visit_id)[5].strftime('%H:%M')  
+        if visit_time.count(':') == 1:
+            visit_time += ":00"
+
+        full_date_time = f"{date_of_visit} {visit_time}"
+
+        full_date_time = datetime.strptime(full_date_time, '%Y-%m-%d %H:%M:%S')
+        print(f"Before update - client_last_name: {client_last_name}, pet_name: {pet_name}, doctor_name: {doctor_name}")
+
         connection = create_connection()
         if connection:
             cursor = connection.cursor()
-            
-            cursor.execute("""
+            cursor.execute("SET NAMES 'utf8mb4'")
+            cursor.execute(""" 
             UPDATE appointments_made 
-            SET date = %s, last_name_client = %s, pet_name = %s, doctor = %s, date_of_visit = %s 
+            SET date = %s, last_name_client = %s, pet_name = %s, doctor = %s, date_of_visit = %s, visit_time = %s
             WHERE idappointments = %s
-            """, (date, client_last_name, pet_name, doctor_name, date_of_visit, visit_id))
+            """, (date, client_last_name, pet_name, doctor_name, full_date_time, visit_time, visit_id))
             
             connection.commit()
             return True
@@ -355,4 +374,3 @@ def update_visit_in_db(visit_id, date, client_last_name, pet_name, doctor_name, 
             cursor.close()
             connection.close()
     return False
-
