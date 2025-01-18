@@ -2,12 +2,23 @@ from Database.connection import create_connection
 from datetime import datetime
 from urllib.parse import unquote
 from datetime import timedelta
+from Database.operations_client import add_client
+import traceback
+import pymysql
+import logging
+import urllib.parse
+
+
+logging.basicConfig(level=logging.DEBUG)
+
+def get_current_time():
+    return datetime.now()
 
 
 def fetch_scheduled_visits():
     try:
         connection = create_connection()
-        if connection:
+        if connection and connection.is_connected():
             cursor = connection.cursor()
             cursor.execute("SELECT * FROM appointments_made")
             results = cursor.fetchall()
@@ -15,12 +26,16 @@ def fetch_scheduled_visits():
                 print(row)
             cursor.close()
             return results
+        else:
+            print("Błąd: Brak połączenia z bazą danych.")
+            return None
     except Exception as e:
         print(f"Błąd podczas pobierania danych: {e}")
     finally:
-        if connection.is_connected():
+        if connection and connection.is_connected():
             cursor.close()
             connection.close()
+
 
 # fetch_scheduled_visits()
 
@@ -48,6 +63,7 @@ def get_doctor_id(doctor_name):
             connection.close()
     return None  
 
+# POBIERANIE ID KLIENTA
 def get_client_id(client_name):
     try:
         connection = create_connection()
@@ -71,41 +87,77 @@ def get_client_id(client_name):
             connection.close()
     return None 
 
-# DODAWANIE NOWEJ WIZYTY PRZEZ RECEPCJONISTKĘ
-def add_next_visit(current_time, last_name_client, pet_name, doctor, date_of_visit): 
+# DODAWANIE NOWEJ/NASTĘPNEJ WIZYTY PRZEZ RECEPCJONISTKĘ
+def add_next_visit(current_time, last_name_client, pet_name, doctor, date_of_visit, visit_time, first_name, phone, address):
+    connection = None
     try:
         connection = create_connection()
         if connection:
             cursor = connection.cursor()
-
+            print("Połączenie z bazą danych zostało nawiązane.")
+            
             client_id = get_client_id(last_name_client)
             if client_id is None:
-                print("Nie udało się znaleźć identyfikatora klienta. Wizyta nie zostanie zapisana.")
-                return
+                print(f"Brak klienta o nazwisku {last_name_client} w bazie danych. Dodaję nowego klienta...")
+                add_client(first_name, last_name_client, phone, address)
+                client_id = get_client_id(last_name_client)
+                if client_id is None:
+                    print("Nie udało się znaleźć identyfikatora klienta. Wizyta nie zostanie zapisana.")
+                    return
 
             doctor_id = get_doctor_id(doctor)
             if doctor_id is None:
-                print("Nie udało się znaleźć identyfikatora lekarza. Wizyta nie zostanie zapisana.")
+                print(f"Nie udało się znaleźć identyfikatora lekarza {doctor}. Wizyta nie zostanie zapisana.")
                 return
 
+            # Formatowanie daty wizyty
             date_of_visit = datetime.strptime(date_of_visit, "%Y-%m-%d").date()
             formatted_date_of_visit = date_of_visit.strftime("%Y-%m-%d")
 
+            # Usuwamy mikrosekundy z current_time
+            current_time = current_time.replace(microsecond=0)
+            
+            # Przypisanie zapytania SQL
             query = """
-            INSERT INTO appointments_made (date, last_name_client, pet_name, doctor, date_of_visit, doctor_id, client_id)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO appointments_made (date, last_name_client, pet_name, doctor, date_of_visit, doctor_id, client_id, visit_time)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
             """
-            cursor.execute(query, (current_time, last_name_client, pet_name, doctor, formatted_date_of_visit, doctor_id, client_id))
+            
+            # Logowanie zapytania SQL po przypisaniu zmiennej 'query'
+            print(f"Zapytanie: {query} z wartościami: {current_time}, {last_name_client}, {pet_name}, {doctor}, {formatted_date_of_visit}, {doctor_id}, {client_id}, {visit_time}")
+
+            cursor.execute(query, (current_time, last_name_client, pet_name, doctor, formatted_date_of_visit, doctor_id, client_id, visit_time))
+
+            # Logowanie przed commit
+            print(f"Zatwierdzam wizytę: {current_time}, {last_name_client}, {pet_name}, {doctor}, {visit_time}")
             connection.commit()
             print("Wizyta została zapisana.")
             cursor.close()
             connection.close()
+            return True
+
+        else:
+            print("Brak połączenia z bazą danych.")
+            return "Wystąpił błąd w połączeniu z bazą danych", 500
+
+    except pymysql.MySQLError as e:
+        print(f"Błąd MySQL: {e}")
+        print("Szczegóły błędu:", traceback.format_exc())  # Wyświetlanie pełnego błędu MySQL
+        return "Błąd w bazie danych", 500
     except Exception as e:
         print(f"Błąd podczas zapisywania wizyty: {e}")
+        print("Szczegóły błędu:", traceback.format_exc())  # Wyświetlanie pełnego śladu stosu błędu
+        return "Wystąpił błąd podczas zapisywania wizyty", 500
     finally:
-        if connection.is_connected():
-            cursor.close()
-            connection.close()
+        if connection:
+            try:
+                if connection.is_connected():
+                    connection.close()
+                    print("Połączenie z bazą danych zostało zamknięte.")
+            except Exception as e:
+                print(f"Błąd podczas zamykania połączenia z bazą danych: {e}")
+
+
 
 def add_visit_data():
     last_name_client = input("Podaj nazwisko klienta: ")
@@ -169,7 +221,7 @@ def find_next_visit():
             cursor = connection.cursor()
             query = """
             SELECT * FROM appointments_made
-            WHERE last_name_client = %s AND pet_name = %s OR doctor = %s 
+            WHERE (last_name_client = %s AND pet_name = %s) OR doctor = %s 
             """
             cursor.execute(query, (last_name_client, pet_name, doctor))
             result = cursor.fetchall()

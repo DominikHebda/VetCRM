@@ -1,5 +1,8 @@
 from Database.connection import create_connection
 from datetime import datetime
+import traceback
+import urllib.parse
+
 
 def fetch_clients():
     """Pobiera wszystkich klientów z tabeli customers."""
@@ -20,30 +23,42 @@ def fetch_clients():
             cursor.close()
             connection.close()
 
-fetch_clients()
+# fetch_clients()
 
+
+import urllib.parse
 
 def add_client(first_name, last_name, phone, address):
-    """Dodaje nowego klienta do tabeli customers."""
     try:
         connection = create_connection()
         if connection:
             cursor = connection.cursor()
+
+            # Zamiana '+' na spację w adresie
+            address = address.replace('+', ' ')
+
+            # Możemy również zastosować unquote, jeśli adres jest zakodowany w URL
+            address = urllib.parse.unquote(address)
+
             query = """
-            INSERT INTO client (first_name, last_name, phone, address) 
+            INSERT INTO client (first_name, last_name, phone, address)
             VALUES (%s, %s, %s, %s)
             """
+            cursor.execute("SET NAMES 'utf8mb4'")  # Ustawienie kodowania
+            print(f"Adding client: {first_name}, {last_name}, {phone}, {address}")
             cursor.execute(query, (first_name, last_name, phone, address))
             connection.commit()
-            print("Klient został dodany.")
+            print(f"Klient {first_name} {last_name} został dodany.")
             cursor.close()
             connection.close()
     except Exception as e:
         print(f"Błąd podczas dodawania klienta: {e}")
+        print(traceback.format_exc())
     finally:
-        if connection.is_connected():
+        if connection and connection.is_connected():
             cursor.close()
             connection.close()
+
 
 def add_client_data():
     """Pobiera dane klienta od użytkownika i dodaje go do bazy danych."""
@@ -52,10 +67,10 @@ def add_client_data():
     phone = input("Podaj numer telefonu klienta: ")
     address = input("Podaj adres klienta: ")
 
-    add_client(first_name, last_name, phone, address)
+    # add_client(first_name, last_name, phone, address)
 
 # Wywołanie funkcji do dodania klienta po podaniu danych w konsoli
-add_client_data()
+# add_client_data()
 
 
 def find_client():
@@ -145,7 +160,7 @@ def update_client():
 
 
 # Wywołanie funkcji aktualizującej
-update_client()
+# update_client()
 
 
 def soft_delete_client():
@@ -201,4 +216,4 @@ def soft_delete_client():
     except Exception as e:
         print(f"Błąd podczas oznaczania klienta jako usuniętego: {e}")
 
-soft_delete_client()
+# soft_delete_client()

@@ -1,5 +1,9 @@
 import mysql.connector
 from mysql.connector import Error
+import logging
+
+logging.basicConfig(level=logging.DEBUG)
+
 
 def create_connection():
     """Tworzy połączenie z bazą danych MySQL."""
