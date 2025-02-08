@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dodaj wizytę</title>
+    <title>Dodaj klienta i zwierzę</title>
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
     <div class="container mt-4">
-        <h1>Dodaj wizytę</h1>
-        <form method="POST" action="/add_next_visit/" enctype="application/x-www-form-urlencoded; charset=UTF-8">
+        <h1>Dodaj klienta i zwierzę</h1>
+        <form method="POST" action="/adding_client_and_pet/">
             <div class="form-group">
                 <label for="client_first_name">Imię klienta:</label>
                 <input type="text" id="client_first_name" name="client_first_name" class="form-control" required />
@@ -50,22 +50,7 @@
                 <input type="text" id="age" name="age" class="form-control" required />
             </div>
 
-            <div class="form-group">
-                <label for="doctor_name">Podaj nazwisko lekarza:</label>
-                <input type="text" id="doctor_name" name="doctor_name" class="form-control" required />
-            </div>
-
-            <div class="form-group">
-                <label for="date_of_visit">Podaj datę wizyty:</label>
-                <input type="date" id="date_of_visit" name="date_of_visit" class="form-control" required />
-            </div>
-
-            <div class="form-group">
-                <label for="visit_time">Podaj godzinę wizyty:</label>
-                <input type="time" id="visit_time" name="visit_time" class="form-control" required />
-            </div>
-
-            <button type="submit" class="btn btn-success">Zapisz wizytę</button>
+            <button type="submit" class="btn btn-success">Zapisz klienta i zwierzę</button>
         </form>
 
         <p class="mt-4"><a href="/" class="btn btn-primary">Powrót do strony głównej</a></p>
@@ -76,4 +61,3 @@
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 </body>
 </html>
-

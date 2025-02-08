@@ -13,18 +13,72 @@ logging.basicConfig(level=logging.DEBUG)  # Ustawienie poziomu logowania na DEBU
 
 def render_home_page():
     home_page_html = """
-    <h1>Witamy w VetCRM</h1>
-    <p>Wybierz jedną z opcji, aby zarządzać przychodnią weterynaryjną:</p>
-    <ul>
-        <li><a href="/add_next_visit/">Dodaj nową wizytę</a></li>
-        <li><a href="/adding_client_and_pet/">Dodaj klienta i jego zwierzę</a></li>
-        <li><a href="/add_doctor/">Dodaj lekarza</a></li>
-        <li><a href="/add_receptionist/">Dodaj recepcjonistkę</a></li>
-        <li><a href="/visits_table/">Pokaż listę wizyt</a></li>
-    </ul>
-    """
+    <!DOCTYPE html>
+    <html lang="pl">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Witamy w VetCRM</title>
+        <!-- Załączenie CSS Bootstrapa -->
+        <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+        <style>
+            body {
+                background-color: #f7fdf4; /* Jasnozielone tło */
+            }
+            h1 {
+                color: #3c763d; /* Zielony kolor dla nagłówka */
+            }
+            p {
+                color: #5bc0de; /* Jasny niebieski, przyjazny kolor dla tekstu */
+            }
+            .list-group-item {
+                background-color: #e9f7e1; /* Jasny zielony dla linków */
+                border: 1px solid #d6e9c6; /* Zielona ramka */
+            }
+            .list-group-item:hover {
+                background-color: #d4edda; /* Trochę ciemniejszy zielony przy najechaniu */
+                cursor: pointer;
+            }
+            .btn {
+                font-size: 16px; /* Większy tekst na przyciskach */
+            }
+            .btn-primary {
+                background-color: #28a745; /* Zielony przycisk */
+                border-color: #28a745;
+            }
+            .btn-primary:hover {
+                background-color: #218838; /* Ciemniejszy zielony przy hover */
+                border-color: #1e7e34;
+            }
+            .btn-lg {
+                margin-bottom: 15px; /* Przerwa między przyciskami */
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container mt-5">
+            <h1 class="text-center">Witamy w VetCRM</h1>
+            <p class="text-center">Wybierz jedną z opcji, aby zarządzać przychodnią weterynaryjną:</p>
+            
+            <div class="list-group">
+                <a href="/add_next_visit/" class="list-group-item list-group-item-action btn btn-primary btn-lg">Dodaj nową wizytę</a>
+                <a href="/adding_client_and_pet/" class="list-group-item list-group-item-action btn btn-success btn-lg">Dodaj klienta i jego zwierzę</a>
+                <a href="/add_doctor/" class="list-group-item list-group-item-action btn btn-warning btn-lg">Dodaj lekarza</a>
+                <a href="/add_receptionist/" class="list-group-item list-group-item-action btn btn-info btn-lg">Dodaj recepcjonistkę</a>
+                <a href="/visits_table/" class="list-group-item list-group-item-action btn btn-secondary btn-lg">Pokaż listę wizyt</a>
+            </div>
+        </div>
 
+        <!-- Załączenie skryptów JS Bootstrapa -->
+        <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+        <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    </body>
+    </html>
+    """
     return home_page_html
+
+
 
 
 def render_visits_to_html():
@@ -33,21 +87,24 @@ def render_visits_to_html():
         return "<p>Brak zaplanowanych wizyt.</p>"
 
     visits_html = """
-    <table border="1">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Data utworzenia wizyty</th>
-                <th>Nazwisko klienta</th>
-                <th>Nazwa zwierzęcia</th>
-                <th>Lekarz</th>
-                <th>Data następnej wizyty</th>
-                <th>Godzina wizyty</th>
-                <th>Pokaż szczegóły</th>
-            </tr>
-        </thead>
-        <a href="/adding/">Dodaj wizytę</a>
-        <tbody>
+    <div class="container">
+        <h2>Lista zaplanowanych wizyt</h2>
+        <a href="/adding/" class="btn btn-primary mb-3">Dodaj wizytę</a>
+        <table class="table table-striped table-bordered">
+            <thead class="thead-dark">
+                <tr>
+                    <th>ID</th>
+                    <th>Data utworzenia wizyty</th>
+                    <th>Nazwisko klienta</th>
+                    <th>Nazwa zwierzęcia</th>
+                    <th>Lekarz</th>
+                    <th>Data następnej wizyty</th>
+                    <th>Godzina wizyty</th>
+                    <th>Pokaż szczegóły</th>
+                    <th>Edytuj wizytę</th>
+                </tr>
+            </thead>
+            <tbody>
     """
 
     for visit in visits:
@@ -59,10 +116,11 @@ def render_visits_to_html():
         date_of_visit = visit[5]  
         visit_time = visit[6]  
 
+        # Formatowanie godziny wizyty
         visit_time = format_visit_time(visit_time)
 
-        visit_details_link = f'<a href="/visit/{visit_id}">Pokaż szczegóły</a>'
-        visit_edit_link = f'<a href="/update/{visit_id}">Edytuj wizytę</a>'
+        visit_details_link = f'<a href="/visit/{visit_id}" class="btn btn-info btn-sm">Pokaż szczegóły</a>'
+        visit_edit_link = f'<a href="/update/{visit_id}" class="btn btn-warning btn-sm">Edytuj wizytę</a>'
 
         visits_html += f"""
         <tr>
@@ -78,7 +136,11 @@ def render_visits_to_html():
         </tr>
         """
     
-    visits_html += "</tbody></table>"
+    visits_html += """
+            </tbody>
+        </table>
+    </div>
+    """
 
     with open("templates/index.html", "r", encoding="utf-8") as f:
         html_template = f.read()
@@ -116,41 +178,29 @@ def render_visit_details(visit_id):
     return visit_details_html
 
 def render_add_doctor_form():
-    add_doctor_form_html = """
-    <h1>Dodaj lekarza</h1>
-    <form method="POST" action="/add_doctor/" enctype="application/x-www-form-urlencoded; charset=UTF-8">
-    <meta charset="UTF-8">
-        <label for="doctor_first_name">Podaj imię lekarza:</label>
-        <input type="text" id="doctor_first_name" name="doctor_first_name" /><br><br>
+    with open("templates/adding_doctors.html", "r", encoding="utf-8") as f:
+        add_doctor_form_html = f.read()
 
-        <label for="doctor_last_name">Podaj nazwisko lekarza:</label>
-        <input type="text" id="doctor_last_name" name="doctor_last_name" /><br><br>
-
-        <label for="doctor_specialization">Podaj specjalizacje:</label>
-        <input type="text" id="doctor_specialization" name="doctor_specialization" /><br><br>
-
-        <input type="submit" value="Zapisz lekarza" />
-    </form>
-    <p><a href="/">Powrót do strony głównej</a></p>
-    """
     return add_doctor_form_html
 
+
 def render_add_receptionist_form():
-    add_receptionist_form_html = """
-    <h1>Dodaj recepcjonistkę</h1>
-    <form method="POST" action="/add_receptionist/" enctype="application/x-www-form-urlencoded; charset=UTF-8">
-    <meta charset="UTF-8">
-        <label for="receptionist_first_name">Podaj imię recepcjonistki:</label>
-        <input type="text" id="receptionist_first_name" name="receptionist_first_name" /><br><br>
+    with open("templates/adding_receptionist.html", "r", encoding="utf-8") as f:
+        add_receptionist_form_html = f.read()
 
-        <label for="receptionist_last_name">Podaj nazwisko recepcjonistki:</label>
-        <input type="text" id="receptionist_last_name" name="receptionist_last_name" /><br><br>
-
-        <input type="submit" value="Zapisz recepcjonistkę" />
-    </form>
-    <p><a href="/">Powrót do strony głównej</a></p>
-    """
     return add_receptionist_form_html
+
+def render_add_next_visit():
+    with open("templates/adding_visit.html", "r", encoding="utf-8") as f:
+        add_next_visit_html = f.read()
+    
+    return add_next_visit_html
+
+def render_add_client_and_pet_form():
+    with open("templates/adding_client_and_pet.html", "r", encoding="utf-8") as f:
+        add_client_and_pet_html = f.read()
+
+    return add_client_and_pet_html   
 
 ###################     DODAJEMY NOWEGO KLIENTA I JEGO ZWIERZĘ      ##################################
 
@@ -232,84 +282,6 @@ def render_visit_edit_form(visit_id):
     """
 
     return visit_edit_form_html
-
-def render_add_next_visit():
-    add_next_visit_form_html = """
-    <h1>Dodaj wizytę</h1>
-    <form method="POST" action="/add_next_visit/" enctype="application/x-www-form-urlencoded; charset=UTF-8">
-    <meta charset="UTF-8">
-        <label for="client_first_name">Imię klienta:</label>
-        <input type="text" id="client_first_name" name="client_first_name" /><br><br>
-
-        <label for="client_last_name">Nazwisko klienta:</label>
-        <input type="text" id="client_last_name" name="client_last_name" /><br><br>
-
-        <label for="client_phone">Podaj telefon:</label>
-        <input type="text" id="client_phone" name="client_phone" /><br><br>
-
-        <label for="client_address">Podaj adres:</label>
-        <input type="text" id="client_address" name="client_address" /><br><br>
-
-        <label for="pet_name">Podaj nazwę zwierzęcia:</label>
-        <input type="text" id="pet_name" name="pet_name" /><br><br>
-
-        <label for="species">Podaj gatunek zwierzęcia:</label>
-        <input type="text" id="species" name="species" /><br><br>
-
-        <label for="breed">Podaj rasę zwierzęcia:</label>
-        <input type="text" id="breed" name="breed" /><br><br>
-
-        <label for="age">Podaj wiek zwierzęcia:</label>
-        <input type="text" id="age" name="age" /><br><br>
-
-        <label for="doctor_name">Podaj nazwisko lekarza:</label>
-        <input type="text" id="doctor_name" name="doctor_name" /><br><br>
-
-        <label for="date_of_visit">Podaj datę wizyty:</label>
-        <input type="date" id="date_of_visit" name="date_of_visit" /><br><br>
-
-        <label for="visit_time">Podaj godzinę wizyty:</label>
-        <input type="time" id="visit_time" name="visit_time" /><br><br>
-
-        <input type="submit" value="Zapisz wizytę" />
-    </form>
-    """
-
-    return add_next_visit_form_html
-
-def render_add_client_and_pet_form():
-    add_client_and_pet_form_html = """
-    <h1>Dodaj klienta i zwierzę</h1>
-    <form method="POST" action="/adding_client_and_pet/">
-        <label for="client_first_name">Imię klienta:</label>
-        <input type="text" id="client_first_name" name="client_first_name" /><br><br>
-
-        <label for="client_last_name">Nazwisko klienta:</label>
-        <input type="text" id="client_last_name" name="client_last_name" /><br><br>
-
-        <label for="client_phone">Podaj telefon:</label>
-        <input type="text" id="client_phone" name="client_phone" /><br><br>
-
-        <label for="client_address">Podaj adres:</label>
-        <input type="text" id="client_address" name="client_address" /><br><br>
-
-        <label for="pet_name">Podaj nazwę zwierzęcia:</label>
-        <input type="text" id="pet_name" name="pet_name" /><br><br>
-
-        <label for="species">Podaj gatunek zwierzęcia:</label>
-        <input type="text" id="species" name="species" /><br><br>
-
-        <label for="breed">Podaj rasę zwierzęcia:</label>
-        <input type="text" id="breed" name="breed" /><br><br>
-
-        <label for="age">Podaj wiek zwierzęcia:</label>
-        <input type="text" id="age" name="age" /><br><br>
-
-        <input type="submit" value="Zapisz klienta i zwierzę" />
-    </form>
-    <p><a href="/">Powrót do strony głównej</a></p>
-    """
-    return add_client_and_pet_form_html
 
 
 class MyHandler(SimpleHTTPRequestHandler):
@@ -400,18 +372,31 @@ class MyHandler(SimpleHTTPRequestHandler):
             self.wfile.write(adding_client_and_pet_form_html.encode('utf-8'))
 
         elif self.path == "/add_doctor/":
-            doctor_form_html = render_add_doctor_form()
-            self.send_response(200)
-            self.send_header("Content-type", "text/html; charset=utf-8")
-            self.end_headers()
-            self.wfile.write(doctor_form_html.encode('utf-8'))
+            try:
+                final_html = render_add_doctor_form()
+                self.send_response(200)
+                self.send_header("Content-type", "text/html; charset=utf-8")
+                self.end_headers()
+                self.wfile.write(final_html.encode("utf-8"))
+            except Exception as e:
+                self.send_response(500)
+                self.send_header("Content-type", "text/html; charset=utf-8")
+                self.end_headers()
+                self.wfile.write(f"<p>Błąd: {e}".encode("utf-8"))
+
 
         elif self.path == "/add_receptionist/":
-            receptionist_form_html = render_add_receptionist_form()
-            self.send_response(200)
-            self.send_header("Content-type", "text/html; charset=utf-8")
-            self.end_headers()
-            self.wfile.write(receptionist_form_html.encode('utf-8'))
+            try:
+                final_html_html = render_add_receptionist_form()
+                self.send_response(200)
+                self.send_header("Content-type", "text/html; charset=utf-8")
+                self.end_headers()
+                self.wfile.write(final_html_html.encode('utf-8'))
+            except Exception as e:
+                self.send_response(500)
+                self.send_header("Content-type", "text/html; charset=utf-8")
+                self.end_headers()
+                self.wfile.write(f"<p>Błąd: {e}".encode("utf-8"))
 
         
 
