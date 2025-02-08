@@ -15,17 +15,21 @@ def fetch_doctors():
     except Exception as e:
         print(f"Błąd podczas pobierania danych: {e}")
   
-fetch_doctors()
+# fetch_doctors()
 
 def add_doctor(first_name, last_name, specialization):
     try:
         connection = create_connection()
         if connection:
             cursor = connection.cursor()
+
+            cursor.execute("SET NAMES 'utf8mb4'")
+
             query = """
             INSERT INTO doctors (first_name, last_name, specialization)
             values (%s, %s, %s)
             """
+
             cursor.execute(query, (first_name, last_name, specialization))
             connection.commit()
             print(f"Lekarz {first_name} {last_name} został dodany.")
@@ -34,14 +38,14 @@ def add_doctor(first_name, last_name, specialization):
     except Exception as e:
         print(f"Błąd podczas dodawania lekarza: {e}")
 
-def add_doctor_data():
-    first_name = input("Podaj imię lekarza: ")
-    last_name = input("Podaj nazwisko lekarza: ")
-    specialization = input("Podaj specjalizacje lekarza: ")
+# def add_doctor_data():
+#     first_name = input("Podaj imię lekarza: ")
+#     last_name = input("Podaj nazwisko lekarza: ")
+#     specialization = input("Podaj specjalizacje lekarza: ")
 
-    add_doctor(first_name, last_name, specialization)
+#     add_doctor(first_name, last_name, specialization)
 
-add_doctor_data()
+# add_doctor_data()
 
 def find_doctor():
     try:
@@ -118,7 +122,7 @@ def update_doctor():
     except Exception as e:
         print(f"Błąd podczas aktualizowania danych lekarza")
 
-update_doctor()
+# update_doctor()
 
 def soft_delete_doctor():
     doctors = find_doctor()
@@ -162,5 +166,5 @@ def soft_delete_doctor():
     except Exception as e:
         print(f"Błąd podczas oznaczania doktora jako usuniętego: {e}")
 
-soft_delete_doctor()
+# soft_delete_doctor()
 

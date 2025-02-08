@@ -3,6 +3,7 @@ from datetime import datetime
 from urllib.parse import unquote
 from datetime import timedelta
 from Database.operations_client import add_client
+from Database.operations_pets import add_pet
 import traceback
 import pymysql
 import logging
@@ -46,7 +47,7 @@ def get_doctor_id(doctor_name):
         if connection:
             cursor = connection.cursor()
             
-            query = "SELECT iddoctor FROM doctors WHERE last_name = %s"
+            query = "SELECT id FROM doctors WHERE last_name = %s"
             cursor.execute(query, (doctor_name,))
             result = cursor.fetchone()
             
@@ -65,37 +66,82 @@ def get_doctor_id(doctor_name):
 
 # POBIERANIE ID KLIENTA
 def get_client_id(client_name):
-    try:
-        connection = create_connection()
-        if connection:
-            cursor = connection.cursor()
-            
-            query = "SELECT idClient FROM client WHERE last_name = %s"
-            cursor.execute(query, (client_name,))
-            result = cursor.fetchone()
-            
-            if result:
-                return result[0] 
-            else:
-                print(f"Brak klienta o nazwisku {client_name} w bazie danych.")
-                return None 
-    except Exception as e:
-        print(f"Błąd podczas pobierania doctor_id: {e}")
-    finally:
-        if connection.is_connected():
-            cursor.close()
-            connection.close()
-    return None 
-
-# DODAWANIE NOWEJ/NASTĘPNEJ WIZYTY PRZEZ RECEPCJONISTKĘ
-def add_next_visit(current_time, last_name_client, pet_name, doctor, date_of_visit, visit_time, first_name, phone, address):
     connection = None
+    cursor = None
     try:
         connection = create_connection()
         if connection:
             cursor = connection.cursor()
             print("Połączenie z bazą danych zostało nawiązane.")
             
+            query = "SELECT id FROM clients WHERE last_name = %s"
+            cursor.execute(query, (client_name,))
+            result = cursor.fetchone()
+            
+            if result:
+                return result[0]  # Zwróć identyfikator klienta
+            else:
+                print(f"Brak klienta o nazwisku {client_name} w bazie danych.")
+                return None 
+
+    except Exception as e:
+        print(f"Błąd podczas pobierania client_id: {e}")
+        print("Szczegóły błędu:", traceback.format_exc())  # Wyświetlanie pełnego śladu błędu
+    finally:
+        # Bezpieczne zamknięcie kursora i połączenia
+        if cursor:
+            try:
+                cursor.close()
+            except Exception as e:
+                print(f"Błąd podczas zamykania kursora: {e}")
+        if connection:
+            try:
+                if connection.is_connected():
+                    connection.close()
+                    print("Połączenie z bazą danych zostało zamknięte.")
+            except Exception as e:
+                print(f"Błąd podczas zamykania połączenia z bazą danych: {e}")
+    
+    return None  # Jeśli nie udało się pobrać identyfikatora
+
+# POBIERANIE ID ZWIERZĘCIA
+def get_pet_id(pet_name, client_id):
+    try:
+        connection = create_connection()
+        if connection:
+            cursor = connection.cursor()
+            
+            query = "SELECT id FROM pets WHERE pet_name = %s AND client_id = %s"
+            cursor.execute(query, (pet_name, client_id))
+            result = cursor.fetchone()
+            
+            if result:
+                return result[0]  # Zwróć ID zwierzęcia
+            else:
+                return None
+    except Exception as e:
+        print(f"Błąd podczas pobierania pet_id: {e}")
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+    return None
+
+
+
+# DODAWANIE NOWEJ/NASTĘPNEJ WIZYTY PRZEZ RECEPCJONISTKĘ
+def add_next_visit(current_time, last_name_client, pet_name, doctor, date_of_visit, visit_time, first_name, phone, address, species, breed, age):
+    print(f"species: {species}, breed: {breed}, age: {age}")
+
+    connection = None
+    cursor = None
+    try:
+        connection = create_connection()
+        if connection:
+            cursor = connection.cursor()
+            print("Połączenie z bazą danych zostało nawiązane.")
+            
+            # Sprawdzamy, czy klient istnieje
             client_id = get_client_id(last_name_client)
             if client_id is None:
                 print(f"Brak klienta o nazwisku {last_name_client} w bazie danych. Dodaję nowego klienta...")
@@ -110,6 +156,16 @@ def add_next_visit(current_time, last_name_client, pet_name, doctor, date_of_vis
                 print(f"Nie udało się znaleźć identyfikatora lekarza {doctor}. Wizyta nie zostanie zapisana.")
                 return
 
+            # Dodajemy zwierzę do bazy danych, jeśli nie ma go jeszcze
+            pet_id = get_pet_id(pet_name, client_id)
+            if pet_id is None:
+                print(f"Brak zwierzęcia {pet_name} w bazie danych. Dodaję nowe zwierzę...")
+                add_pet(pet_name, species, breed, age, client_id)
+                pet_id = get_pet_id(pet_name, client_id)
+                if pet_id is None:
+                    print("Nie udało się znaleźć identyfikatora zwierzęcia. Wizyta nie zostanie zapisana.")
+                    return
+
             # Formatowanie daty wizyty
             date_of_visit = datetime.strptime(date_of_visit, "%Y-%m-%d").date()
             formatted_date_of_visit = date_of_visit.strftime("%Y-%m-%d")
@@ -117,38 +173,39 @@ def add_next_visit(current_time, last_name_client, pet_name, doctor, date_of_vis
             # Usuwamy mikrosekundy z current_time
             current_time = current_time.replace(microsecond=0)
             
-            # Przypisanie zapytania SQL
+            # Przypisanie zapytania SQL do zapisania wizyty
             query = """
             INSERT INTO appointments_made (date, last_name_client, pet_name, doctor, date_of_visit, doctor_id, client_id, visit_time)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
             """
             
-            # Logowanie zapytania SQL po przypisaniu zmiennej 'query'
             print(f"Zapytanie: {query} z wartościami: {current_time}, {last_name_client}, {pet_name}, {doctor}, {formatted_date_of_visit}, {doctor_id}, {client_id}, {visit_time}")
 
             cursor.execute(query, (current_time, last_name_client, pet_name, doctor, formatted_date_of_visit, doctor_id, client_id, visit_time))
 
-            # Logowanie przed commit
+            # Zatwierdzanie wizyty
             print(f"Zatwierdzam wizytę: {current_time}, {last_name_client}, {pet_name}, {doctor}, {visit_time}")
             connection.commit()
             print("Wizyta została zapisana.")
             cursor.close()
             connection.close()
             return True
-
+            
         else:
             print("Brak połączenia z bazą danych.")
             return "Wystąpił błąd w połączeniu z bazą danych", 500
 
     except pymysql.MySQLError as e:
         print(f"Błąd MySQL: {e}")
-        print("Szczegóły błędu:", traceback.format_exc())  # Wyświetlanie pełnego błędu MySQL
+        print("Szczegóły błędu:", traceback.format_exc())
         return "Błąd w bazie danych", 500
     except Exception as e:
         print(f"Błąd podczas zapisywania wizyty: {e}")
-        print("Szczegóły błędu:", traceback.format_exc())  # Wyświetlanie pełnego śladu stosu błędu
+        print("Szczegóły błędu:", traceback.format_exc())
         return "Wystąpił błąd podczas zapisywania wizyty", 500
     finally:
+        if cursor:
+            cursor.close()
         if connection:
             try:
                 if connection.is_connected():
@@ -156,7 +213,6 @@ def add_next_visit(current_time, last_name_client, pet_name, doctor, date_of_vis
                     print("Połączenie z bazą danych zostało zamknięte.")
             except Exception as e:
                 print(f"Błąd podczas zamykania połączenia z bazą danych: {e}")
-
 
 
 def add_visit_data():

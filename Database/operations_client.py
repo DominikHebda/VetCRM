@@ -1,4 +1,5 @@
 from Database.connection import create_connection
+from Database.operations_pets import add_pet
 from datetime import datetime
 import traceback
 import urllib.parse
@@ -41,7 +42,7 @@ def add_client(first_name, last_name, phone, address):
             address = urllib.parse.unquote(address)
 
             query = """
-            INSERT INTO client (first_name, last_name, phone, address)
+            INSERT INTO clients (first_name, last_name, phone, address)
             VALUES (%s, %s, %s, %s)
             """
             cursor.execute("SET NAMES 'utf8mb4'")  # Ustawienie kodowania
@@ -71,6 +72,50 @@ def add_client_data():
 
 # Wywołanie funkcji do dodania klienta po podaniu danych w konsoli
 # add_client_data()
+
+def add_client_and_pet_s(first_name, last_name, phone, address, pet_name, species, breed, age):
+    try:
+        connection = create_connection()
+        if connection:
+            cursor = connection.cursor()
+
+            # Zamiana '+' na spację w adresie
+            address = address.replace('+', ' ')
+
+            # Możemy również zastosować unquote, jeśli adres jest zakodowany w URL
+            address = urllib.parse.unquote(address)
+
+            query1 = """
+            INSERT INTO clients (first_name, last_name, phone, address)
+            VALUES (%s, %s, %s, %s)
+            """
+            query2 = """
+            INSERT INTO pets (pet_name, species, breed, age, client_id)
+            VALUES (%s, %s, %s, %s, %s)
+            """
+            cursor.execute("SET NAMES 'utf8mb4'")  # Ustawienie kodowania
+            print(f"Adding client: {first_name}, {last_name}, {phone}, {address}")
+            cursor.execute(query1, (first_name, last_name, phone, address))
+            
+            # Uzyskujemy ID klienta po dodaniu klienta
+            client_id = cursor.lastrowid  # To jest autoinkrementowane ID ostatnio dodanego klienta
+
+            print(f"Adding pet: {pet_name}, {species}, {breed}, {age}")
+            cursor.execute(query2, (pet_name, species, breed, age, client_id))
+            connection.commit()
+            print(f"Klient {first_name} {last_name} oraz zwierzę {pet_name} zostały dodani.")
+            cursor.close()
+            connection.close()
+            return True  # Zwracamy True, aby wskazać sukces
+    except Exception as e:
+        print(f"Błąd podczas dodawania klienta: {e}")
+        print(traceback.format_exc())
+        return False  # Zwracamy False, jeśli wystąpił błąd
+    finally:
+        if connection and connection.is_connected():
+            cursor.close()
+            connection.close()
+
 
 
 def find_client():

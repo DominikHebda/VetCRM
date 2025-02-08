@@ -20,16 +20,16 @@ def fetch_pets():
             connection.close()
 fetch_pets()
 
-def add_pet(pet_name, species, breed, age):
+def add_pet(pet_name, species, breed, age, client_id):
     try:
         connection = create_connection()
         if connection:
             cursor = connection.cursor()
             query = """
-            INSERT INTO pets (pet_name, species, breed, age)
-            VALUES (%s, %s, %s, %s)
+            INSERT INTO pets (pet_name, species, breed, age, client_id)
+            VALUES (%s, %s, %s, %s, %s)
             """
-            cursor.execute(query, (pet_name, species, breed, age))
+            cursor.execute(query, (pet_name, species, breed, age, client_id))
             connection.commit()
             print(f"Zwierzę {pet_name} zostało dodane")
             cursor.close()
