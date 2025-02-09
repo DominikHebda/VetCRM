@@ -18,7 +18,7 @@ def fetch_pets():
         if connection.is_connected():
             cursor.close()
             connection.close()
-fetch_pets()
+# fetch_pets()
 
 def add_pet(pet_name, species, breed, age, client_id):
     try:
@@ -171,4 +171,4 @@ def soft_delete_pet():
     except Exception as e:
         print(f"Błąd podczas oznaczania klienta jako usuniętego: {e}")
 
-soft_delete_pet()
+# soft_delete_pet()

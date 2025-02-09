@@ -61,6 +61,7 @@ def render_home_page():
             <p class="text-center">Wybierz jedną z opcji, aby zarządzać przychodnią weterynaryjną:</p>
             
             <div class="list-group">
+                <a href="/adding_client/" class="list-group-item list-group-item-action btn btn-primary btn-lg">Dodaj nowego klienta</a>
                 <a href="/add_next_visit/" class="list-group-item list-group-item-action btn btn-primary btn-lg">Dodaj nową wizytę</a>
                 <a href="/adding_client_and_pet/" class="list-group-item list-group-item-action btn btn-success btn-lg">Dodaj klienta i jego zwierzę</a>
                 <a href="/add_doctor/" class="list-group-item list-group-item-action btn btn-warning btn-lg">Dodaj lekarza</a>
@@ -202,6 +203,12 @@ def render_add_client_and_pet_form():
 
     return add_client_and_pet_html   
 
+def render_add_client():
+    with open("templates/adding_client.html", "r", encoding="utf-8") as f:
+        add_client_html = f.read()
+
+    return add_client_html
+
 ###################     DODAJEMY NOWEGO KLIENTA I JEGO ZWIERZĘ      ##################################
 
 def render_add_new_client_and_pet():
@@ -287,6 +294,7 @@ def render_visit_edit_form(visit_id):
 class MyHandler(SimpleHTTPRequestHandler):
     def do_GET(self):
 
+
 ########################    WYŚWIETLANIE STRONY POWITALNEJ  ################
 
 
@@ -296,6 +304,20 @@ class MyHandler(SimpleHTTPRequestHandler):
             self.send_header("Content-type", "text/html; charset=utf-8")
             self.end_headers()
             self.wfile.write(home_page_html.encode('utf-8'))
+
+
+########################    DODAWANIE KLIENTA  ################
+    
+
+        elif self.path == "/adding_client/":
+            add_client_html = render_add_client()  
+            self.send_response(200)
+            self.send_header("Content-type", "text/html; charset=utf-8")
+            self.end_headers()
+            self.wfile.write(add_client_html.encode('utf-8'))
+
+
+
 
         elif self.path.startswith("/visit/"):
             visit_id = self.path.split("/visit/")[1]
@@ -571,6 +593,18 @@ class MyHandler(SimpleHTTPRequestHandler):
 
 ###################     DODAJEMY NOWEGO KLIENTA I JEGO ZWIERZĘ      ##################################
 
+        elif self.path == "/adding_client/":
+            content_length = int(self.headers.get('Content-Length'))
+            post_data = self.rfile.read(content_length)
+            post_data = post_data.decode('utf-8')
+            data = {item.split('=')[0]: urllib.parse.unquote_plus(item.split('=')[1]) for item in post_data.split('&')}
+            self.handle_add_client_post(data)
+
+
+
+
+###################     DODAJEMY NOWEGO KLIENTA I JEGO ZWIERZĘ      ##################################
+
         elif self.path.startswith("/adding_client_and_pet/"):
             try:
                 # Parsowanie danych z formularza
@@ -631,6 +665,26 @@ class MyHandler(SimpleHTTPRequestHandler):
             post_data = self.rfile.read(content_length).decode('utf-8')
             data = {item.split('=')[0]: urllib.parse.unquote_plus(item.split('=')[1]) for item in post_data.split('&')}
             self.handle_add_receptionist_post(data)
+
+    def handle_add_client_post(self, data):
+            first_name = data.get('client_first_name', '')
+            last_name = data.get('client_last_name', '')
+            phone = data.get('client_phone', '')
+            address = data.get('client_address', '')
+
+            try:
+                add_client(first_name, last_name, phone, address)
+                self.send_response(200)
+                self.send_header("Content-type", "text/html; charset=utf-8")
+                self.end_headers()
+                self.wfile.write("<p>Client został dodany do bazy danych!</p>".encode('utf-8'))
+            except Exception as e:
+                # Wysłanie odpowiedzi HTTP w przypadku błędu
+                self.send_response(500)
+                self.send_header("Content-type", "text/html; charset=utf-8")
+                self.end_headers()
+                self.wfile.write(f"<p>Wystąpił błąd: {e}</p>".encode('utf-8'))
+
 
 
     # Przenosimy metodę handle_add_doctor_post na poziom klasy
