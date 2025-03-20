@@ -1,12 +1,14 @@
-from Database.operations_visits import fetch_scheduled_visits, fetch_visits_details, update_visit_in_db, format_visit_time, add_next_visit, get_client_id, get_current_time
-from Database.operations_client import add_client, add_client_and_pet_s
+from Database.operations_visits import fetch_scheduled_visits, fetch_visits_details, update_visit_in_db, format_visit_time, add_next_visit, get_client_id, get_client_data_by_id, get_current_time
+from Database.operations_client import add_client, find_client, find_client_by_id, update_client, add_client_and_pet_s
 from Database.operations_doctors import add_doctor
 from Database.operations_receptionist import add_receptionist
 from Database.operations_pets import add_pet
 from Database.connection import create_connection
 from http.server import SimpleHTTPRequestHandler, HTTPServer
 import urllib.parse
+from urllib.parse import parse_qs
 import logging
+import os
 
 logging.basicConfig(level=logging.DEBUG)  # Ustawienie poziomu logowania na DEBUG
 
@@ -62,6 +64,7 @@ def render_home_page():
             
             <div class="list-group">
                 <a href="/adding_client/" class="list-group-item list-group-item-action btn btn-primary btn-lg">Dodaj nowego klienta</a>
+                <a href="/searching_client/" class="list-group-item list-group-item-action btn btn-success btn-lg">Znajdź klienta</a>
                 <a href="/add_next_visit/" class="list-group-item list-group-item-action btn btn-primary btn-lg">Dodaj nową wizytę</a>
                 <a href="/adding_client_and_pet/" class="list-group-item list-group-item-action btn btn-success btn-lg">Dodaj klienta i jego zwierzę</a>
                 <a href="/add_doctor/" class="list-group-item list-group-item-action btn btn-warning btn-lg">Dodaj lekarza</a>
@@ -90,7 +93,7 @@ def render_visits_to_html():
     visits_html = """
     <div class="container">
         <h2>Lista zaplanowanych wizyt</h2>
-        <a href="/adding/" class="btn btn-primary mb-3">Dodaj wizytę</a>
+        <a href="/add_next_visit/" class="btn btn-primary mb-3">Dodaj wizytę</a>
         <table class="table table-striped table-bordered">
             <thead class="thead-dark">
                 <tr>
@@ -209,6 +212,18 @@ def render_add_client():
 
     return add_client_html
 
+def render_search_client():
+    with open("templates/searching_client.html", "r", encoding="utf-8") as f:
+        search_client_html = f.read()
+
+    return search_client_html
+
+def render_update_client():
+    with open("templates/update_client", "r", encoding="utf-8") as f:
+        update_client_html = f.read()
+
+    return update_client_html
+
 ###################     DODAJEMY NOWEGO KLIENTA I JEGO ZWIERZĘ      ##################################
 
 def render_add_new_client_and_pet():
@@ -317,7 +332,67 @@ class MyHandler(SimpleHTTPRequestHandler):
             self.wfile.write(add_client_html.encode('utf-8'))
 
 
+########################    WYSZUKIWANIE KLIENTA  ################
 
+        elif self.path == "/searching_client/":
+            search_client_html = render_search_client()  
+            self.send_response(200)
+            self.send_header("Content-type", "text/html; charset=utf-8")
+            self.end_headers()
+            self.wfile.write(search_client_html.encode('utf-8'))
+
+
+########################    UAKTUALNIAMY DANE KLIENTA  ################
+
+
+        elif self.path.startswith("/update_client/"):
+            # Zakładając, że client_id jest częścią ścieżki URL
+            client_id = self.path.split("/")[2]  # Wyciągamy client_id z URL
+
+            # Sprawdzamy, czy klient istnieje na podstawie ID
+            client = find_client_by_id(client_id)  # Wywołujemy find_client_by_id, która oczekuje client_id
+
+            if client:
+                # Przygotowujemy dane klienta do przekazania do szablonu
+                client_data = {
+                    "client_id": client[0],
+                    "first_name": client[1],
+                    "last_name": client[2],
+                    "phone": client[3],
+                    "address": client[4]
+                }
+
+                # Wczytanie szablonu HTML
+                try:
+                    template_path = os.path.join(os.path.dirname(__file__), 'Templates', 'update_client.html')
+                    print(f"Template path: {template_path}")  # Dodajemy logowanie ścieżki
+
+                    if os.path.exists(template_path):
+                        with open(template_path, "r", encoding="utf-8") as f:
+                            template = f.read()
+                        
+                        # Zastępujemy zmienne w szablonie
+                        for key, value in client_data.items():
+                            template = template.replace(f"{{{{ {key} }}}}", str(value))
+
+                        # Wysyłamy odpowiedź z HTML
+                        self.send_response(200)
+                        self.send_header("Content-type", "text/html; charset=utf-8")
+                        self.end_headers()
+                        self.wfile.write(template.encode('utf-8'))
+                    else:
+                        self.send_error(404, "Plik szablonu nie znaleziony")
+                except FileNotFoundError:
+                    self.send_error(404, "Plik szablonu nie znaleziony")
+            else:
+                self.send_error(404, "Klient nie znaleziony")
+
+
+
+
+
+
+            
 
         elif self.path.startswith("/visit/"):
             visit_id = self.path.split("/visit/")[1]
@@ -591,7 +666,7 @@ class MyHandler(SimpleHTTPRequestHandler):
                 self.wfile.write(f"<p>Błąd: {e}</p>".encode('utf-8'))
 
 
-###################     DODAJEMY NOWEGO KLIENTA I JEGO ZWIERZĘ      ##################################
+###################     DODAJEMY NOWEGO KLIENTA      ##################################
 
         elif self.path == "/adding_client/":
             content_length = int(self.headers.get('Content-Length'))
@@ -599,6 +674,78 @@ class MyHandler(SimpleHTTPRequestHandler):
             post_data = post_data.decode('utf-8')
             data = {item.split('=')[0]: urllib.parse.unquote_plus(item.split('=')[1]) for item in post_data.split('&')}
             self.handle_add_client_post(data)
+
+
+###################     WYSZUKUJEMY KLIENTA      ##################################
+
+        elif self.path == "/searching_client/":
+            content_length = int(self.headers.get('Content-Length'))
+            post_data = self.rfile.read(content_length)
+            data = {item.split('=')[0]: urllib.parse.unquote_plus(item.split('=')[1]) for item in post_data.decode('utf-8').split('&')}
+
+            # Pobierz dane z formularza
+            first_name = data.get('first_name', '')
+            last_name = data.get('last_name', '')
+    
+            # Upewnij się, że wartości zostały przypisane
+            if not first_name or not last_name:
+                self.send_error(400, "Brak wymaganych danych (first_name, last_name).")
+                return
+
+            clients = find_client(first_name, last_name)
+
+            if clients:
+                # Jeśli znaleziono klientów, wyświetlamy listę
+                self.send_response(200)
+                self.send_header("Content-type", "text/html; charset=utf-8")
+                self.end_headers()
+                clients_html = "<h2>Znaleziono klientów:</h2><ul>"
+                for client in clients:
+                    clients_html += f"<li><a href='/update_client/{client[0]}'>Edytuj {client[1]} {client[2]}</a></li>"
+                clients_html += "</ul>"
+                self.wfile.write(clients_html.encode('utf-8'))
+            else:
+                self.send_response(404)
+                self.send_header("Content-type", "text/html; charset=utf-8")
+                self.end_headers()
+                self.wfile.write("<p>Nie znaleziono klientów.</p>".encode('utf-8'))
+
+
+###################     UAKTUALNIAMY DANE KLIENTA      ##################################
+
+
+        
+        elif self.path.startswith("/update_client/"):
+            # Pobieranie danych z formularza
+            content_length = int(self.headers['Content-Length'])
+            post_data = self.rfile.read(content_length)
+            data = parse_qs(post_data.decode('utf-8'))
+
+            # Logowanie danych z formularza
+            print(f"Dane przesłane z formularza: {data}")
+
+            client_id = data.get('client_id', [''])[0]
+
+            # Szukamy klienta na podstawie ID
+            client = find_client_by_id(client_id)
+
+            if client:
+                # Jeżeli klient został znaleziony, przechodzimy do aktualizacji
+                first_name = data.get('client_first_name', [''])[0]
+                last_name = data.get('client_last_name', [''])[0]
+                phone = data.get('client_phone', [''])[0]
+                address = data.get('client_address', [''])[0]
+
+                # Wywołanie funkcji do aktualizacji danych klienta
+                update_client(client_id, first_name, last_name, phone, address)
+
+                self.send_response(200)
+                self.send_header("Content-type", "text/html; charset=utf-8")
+                self.end_headers()
+                self.wfile.write("<p>Dane klienta zostały zaktualizowane.</p>".encode('utf-8'))
+            else:
+                # Jeżeli klient nie został znaleziony, zwróć błąd
+                self.send_error(404, "Nie znaleziono klienta.")
 
 
 
@@ -667,25 +814,40 @@ class MyHandler(SimpleHTTPRequestHandler):
             self.handle_add_receptionist_post(data)
 
     def handle_add_client_post(self, data):
-            first_name = data.get('client_first_name', '')
-            last_name = data.get('client_last_name', '')
-            phone = data.get('client_phone', '')
-            address = data.get('client_address', '')
+        first_name = data.get('client_first_name', '')
+        last_name = data.get('client_last_name', '')
+        phone = data.get('client_phone', '')
+        address = data.get('client_address', '')
 
-            try:
-                add_client(first_name, last_name, phone, address)
-                self.send_response(200)
-                self.send_header("Content-type", "text/html; charset=utf-8")
-                self.end_headers()
-                self.wfile.write("<p>Client został dodany do bazy danych!</p>".encode('utf-8'))
-            except Exception as e:
+        try:
+            add_client(first_name, last_name, phone, address)
+            self.send_response(200)
+            self.send_header("Content-type", "text/html; charset=utf-8")
+            self.end_headers()
+            self.wfile.write("<p>Client został dodany do bazy danych!</p>".encode('utf-8'))
+        except Exception as e:
                 # Wysłanie odpowiedzi HTTP w przypadku błędu
-                self.send_response(500)
-                self.send_header("Content-type", "text/html; charset=utf-8")
-                self.end_headers()
-                self.wfile.write(f"<p>Wystąpił błąd: {e}</p>".encode('utf-8'))
+            self.send_response(500)
+            self.send_header("Content-type", "text/html; charset=utf-8")
+            self.end_headers()
+            self.wfile.write(f"<p>Wystąpił błąd: {e}</p>".encode('utf-8'))
 
+    def handle_search_client_post(self, data):
+        first_name = data.get('client_first_name', '')
+        last_name = data.get('client_last_name', '')
 
+        try:
+            find_client(first_name, last_name)
+            self.send_response(200)
+            self.send_header("Content-type", "text/html; charset=utf-8")
+            self.end_headers()
+            self.wfile.write("<p>Znaleziono klienta: {first_name} {last_name}</p>".encode('utf-8'))
+        except Exception as e:
+                # Wysłanie odpowiedzi HTTP w przypadku błędu
+            self.send_response(500)
+            self.send_header("Content-type", "text/html; charset=utf-8")
+            self.end_headers()
+            self.wfile.write(f"<p>Wystąpił błąd: {e}</p>".encode('utf-8'))
 
     # Przenosimy metodę handle_add_doctor_post na poziom klasy
     def handle_add_doctor_post(self, data):

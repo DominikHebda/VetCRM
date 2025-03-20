@@ -104,6 +104,33 @@ def get_client_id(client_name):
     
     return None  # Jeśli nie udało się pobrać identyfikatora
 
+# POBIERAMYY DANE CLIENTA PO JEGO client_id
+def get_client_data_by_id(client_id):
+    """Pobierz dane klienta na podstawie jego ID."""
+    connection = None
+    cursor = None
+    try:
+        connection = create_connection()
+        cursor = connection.cursor()
+        query = "SELECT * FROM clients WHERE id = %s"
+        cursor.execute(query, (client_id,))
+        result = cursor.fetchone()
+
+        if result:
+            return result  # Zwróć dane klienta (tuple)
+        else:
+            print(f"Brak klienta o ID {client_id} w bazie danych.")
+            return None
+    except Exception as e:
+        print(f"Błąd podczas pobierania danych klienta: {e}")
+    finally:
+        if cursor:
+            cursor.close()
+        if connection and connection.is_connected():
+            connection.close()
+    return None
+
+
 # POBIERANIE ID ZWIERZĘCIA
 def get_pet_id(pet_name, client_id):
     try:

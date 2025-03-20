@@ -117,23 +117,25 @@ def add_client_and_pet_s(first_name, last_name, phone, address, pet_name, specie
             connection.close()
 
 
-
-def find_client():
+# SZUKANIE KLIENTÓW NA PODSTAWIE ID LUB IMIENIA I NAZWISKA
+def find_client(first_name, last_name):
     """Szukanie klientów na podstawie imienia i nazwiska."""
+    connection = None
     try:
-        first_name = input("Podaj imię szukanego klienta: ").strip()
-        last_name = input("Podaj nazwisko szukanego klienta: ").strip()
-
         connection = create_connection()
         cursor = connection.cursor()
-        cursor.execute("SELECT * FROM client WHERE first_name = %s AND last_name = %s", (first_name, last_name))
+
+        # Logowanie przyjętych danych
+        print(f"Szukam klienta o imieniu: {first_name} i nazwisku: {last_name}")
+
+        cursor.execute("SELECT * FROM clients WHERE first_name = %s AND last_name = %s", (first_name, last_name))
         results = cursor.fetchall()
 
         if results:
-            print(f"Znaleziono {len(results)} klientów:")
+            print(f"Znaleziono {len(results)} klienta:")
             for row in results:
                 print(f"ID: {row[0]}, Imię: {row[1]}, Nazwisko: {row[2]}, Telefon: {row[3]}, Adres: {row[4]}")
-            return results  # Zwracamy listę wyników, aby można było je wykorzystać później
+            return results  # Zwracamy listę wyników
         else:
             print("Nie znaleziono klientów o podanych danych.")
             return None
@@ -145,63 +147,65 @@ def find_client():
             cursor.close()
             connection.close()
 
-def update_client():
-    """Aktualizuje dane klienta na podstawie ID."""
-    # Szukamy klientów
-    clients = find_client()
-    if not clients:
-        return  # Jeśli nie znaleziono żadnych klientów, kończymy działanie
 
-    # Użytkownik wybiera ID klienta do aktualizacji
+def find_client_by_id(client_id):
+    """Znajduje klienta po jego ID."""
+    connection = create_connection()
+    if connection is None:
+        return None  # Jeśli połączenie się nie udało, zwracamy None
+
     try:
-        # Pytamy użytkownika o ID klienta, którego chce zaktualizować
-        client_id = int(input("Podaj ID klienta, którego dane chcesz zaktualizować: "))
-        
-        # Sprawdzamy, czy ID jest poprawne
-        selected_client = None
-        for client in clients:
-            if client[0] == client_id:  # Zakładając, że ID klienta jest w pierwszej kolumnie
-                selected_client = client
-                break
-
-        if not selected_client:
-            print("Nie znaleziono klienta o podanym ID.")
-            return
-
-        print(f"Wybrano klienta: {selected_client[1]} {selected_client[2]} (ID: {selected_client[0]})")
-
-        # Pobieramy dane, które chcemy zaktualizować
-        new_first_name = input(f"Podaj nowe imię klienta ({selected_client[1]}) (pozostaw puste, aby nie zmieniać): ")
-        new_last_name = input(f"Podaj nowe nazwisko klienta ({selected_client[2]}) (pozostaw puste, aby nie zmieniać): ")
-        new_phone = input(f"Podaj nowy numer telefonu klienta ({selected_client[3]}) (pozostaw puste, aby nie zmieniać): ")
-        new_address = input(f"Podaj nowy adres klienta ({selected_client[4]}) (pozostaw puste, aby nie zmieniać): ")
-
-        # Jeśli użytkownik nie podał nowych danych, pozostawiamy stare wartości
-        new_first_name = new_first_name or selected_client[1]
-        new_last_name = new_last_name or selected_client[2]
-        new_phone = new_phone or selected_client[3]
-        new_address = new_address or selected_client[4]
-
-        # Wykonujemy aktualizację
-        connection = create_connection()
         cursor = connection.cursor()
+        
+        # Zapytanie SQL w celu znalezienia klienta po ID
+        query = "SELECT id, first_name, last_name, phone, address FROM clients WHERE id = %s"
+        cursor.execute(query, (client_id,))
+        
+        # Pobranie jednego wyniku
+        client = cursor.fetchone()
+        
+        # Jeśli klient istnieje, zwróć dane
+        if client:
+            return client  # Zwracamy krotkę (idClient, first_name, last_name, phone, address)
+        else:
+            return None  # Jeśli klient nie został znaleziony
 
-        query = """
-        UPDATE client
-        SET first_name = %s, last_name = %s, phone = %s, address = %s
-        WHERE idClient = %s
-        """
-        cursor.execute(query, (new_first_name, new_last_name, new_phone, new_address, client_id))
-        connection.commit()
-        print(f"Dane klienta {selected_client[1]} {selected_client[2]} zostały zaktualizowane.")
-
+    except Exception as e:
+        print(f"Błąd przy wyszukiwaniu klienta: {e}")
+        return None
+    finally:
         cursor.close()
         connection.close()
 
-    except ValueError:
-        print("Błąd: Podano nieprawidłowe ID.")
+
+def update_client(client_id, first_name, last_name, phone, address):
+    """Aktualizuje dane klienta na podstawie ID w aplikacji webowej."""
+    try:
+        connection = create_connection()  # Funkcja tworząca połączenie z bazą
+        cursor = connection.cursor()
+
+        print("Połączenie z bazą danych nawiązane.")  # Sprawdzenie połączenia
+
+        # Upewnij się, że client_id jest liczbą, jeśli tego wymaga baza
+        client_id = int(client_id)
+
+        query = """
+        UPDATE clients
+        SET first_name = %s, last_name = %s, phone = %s, address = %s
+        WHERE id = %s 
+        """
+
+        print(f"Wykonywane zapytanie: {query} z parametrami: {first_name}, {last_name}, {phone}, {address}, {client_id}")
+
+        cursor.execute(query, (first_name, last_name, phone, address, client_id))
+        connection.commit()
+
+        print(f"Dane klienta {first_name} {last_name} zostały zaktualizowane.")
+        cursor.close()
+        connection.close()
     except Exception as e:
         print(f"Błąd podczas aktualizowania danych klienta: {e}")
+
 
 
 # Wywołanie funkcji aktualizującej

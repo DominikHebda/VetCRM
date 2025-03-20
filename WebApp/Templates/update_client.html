@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edytuj klienta</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-4">
+        <h1>Edytuj klienta</h1>
+        <form method="POST" action="/update_client/">
+            <div class="form-group">
+                <label for="client_id">ID klienta:</label>
+                <input type="text" id="client_id" name="client_id" class="form-control" required readonly value="{{ client_id }}" />
+            </div>
+
+            <div class="form-group">
+                <label for="client_first_name">Imię klienta:</label>
+                <input type="text" id="client_first_name" name="client_first_name" class="form-control" value="{{ first_name }}" />
+            </div>
+
+            <div class="form-group">
+                <label for="client_last_name">Nazwisko klienta:</label>
+                <input type="text" id="client_last_name" name="client_last_name" class="form-control" value="{{ last_name }}" />
+            </div>
+
+            <div class="form-group">
+                <label for="client_phone">Telefon klienta:</label>
+                <input type="text" id="client_phone" name="client_phone" class="form-control" value="{{ phone }}" />
+            </div>
+
+            <div class="form-group">
+                <label for="client_address">Adres klienta:</label>
+                <input type="text" id="client_address" name="client_address" class="form-control" value="{{ address }}" />
+            </div>
+
+            <button type="submit" class="btn btn-success">Zaktualizuj klienta</button>
+        </form>
+
+        <p class="mt-4"><a href="/" class="btn btn-primary">Powrót do strony głównej</a></p>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>
