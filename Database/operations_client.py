@@ -6,15 +6,22 @@ import urllib.parse
 
 
 def fetch_clients():
-    """Pobiera wszystkich klientów z tabeli customers."""
+    """Pobiera wszystkich klientów z tabeli 'clients'"""
+    clients = []
     try:
         connection = create_connection()
+        print("Połączenie z bazą danych nawiązane.")  # Debugowanie
         if connection:
             cursor = connection.cursor()
-            cursor.execute("SELECT * FROM client")
-            results = cursor.fetchall()
+            cursor.execute("SELECT * FROM clients")  # Zapytanie do bazy
+            results = cursor.fetchall()  # Pobiera wszystkie wyniki
+
+            print("Dane pobrane z bazy:")  # Debugowanie
             for row in results:
-                print(row)
+                print(row)  # Debugowanie
+                # Zapisujemy dane klienta w formie krotki (id, imię, nazwisko, telefon, adres)
+                clients.append(row)
+            
             cursor.close()
             connection.close()
     except Exception as e:
@@ -24,10 +31,12 @@ def fetch_clients():
             cursor.close()
             connection.close()
 
+    return clients  # Zwraca listę klientów
+
+
+
 # fetch_clients()
 
-
-import urllib.parse
 
 def add_client(first_name, last_name, phone, address):
     try:

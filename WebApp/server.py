@@ -1,5 +1,5 @@
 from Database.operations_visits import fetch_scheduled_visits, fetch_visits_details, update_visit_in_db, format_visit_time, add_next_visit, get_client_id, get_client_data_by_id, get_current_time
-from Database.operations_client import add_client, find_client, find_client_by_id, update_client, add_client_and_pet_s
+from Database.operations_client import fetch_clients, add_client, find_client, find_client_by_id, update_client, add_client_and_pet_s
 from Database.operations_doctors import add_doctor
 from Database.operations_receptionist import add_receptionist
 from Database.operations_pets import add_pet
@@ -33,43 +33,69 @@ def render_home_page():
             p {
                 color: #5bc0de; /* Jasny niebieski, przyjazny kolor dla tekstu */
             }
-            .list-group-item {
-                background-color: #e9f7e1; /* Jasny zielony dla linków */
-                border: 1px solid #d6e9c6; /* Zielona ramka */
-            }
-            .list-group-item:hover {
-                background-color: #d4edda; /* Trochę ciemniejszy zielony przy najechaniu */
-                cursor: pointer;
-            }
             .btn {
-                font-size: 16px; /* Większy tekst na przyciskach */
+                font-size: 18px; /* Większy tekst na przyciskach */
+                width: 100%; /* Pełna szerokość przycisków */
+                margin-bottom: 15px; /* Odstęp między przyciskami */
             }
             .btn-primary {
-                background-color: #28a745; /* Zielony przycisk */
-                border-color: #28a745;
+                background-color: #007b9e; /* Stonowany niebieski */
+                border-color: #007b9e;
             }
             .btn-primary:hover {
-                background-color: #218838; /* Ciemniejszy zielony przy hover */
-                border-color: #1e7e34;
+                background-color: #00688b; /* Ciemniejszy niebieski przy hover */
+                border-color: #005a74;
             }
-            .btn-lg {
-                margin-bottom: 15px; /* Przerwa między przyciskami */
+            .btn-success {
+                background-color: #218838; /* Intensywniejszy zielony dla Zwierząt */
+                border-color: #218838;
+            }
+            .btn-success:hover {
+                background-color: #1c7430; /* Ciemniejszy odcień zielonego przy hover */
+                border-color: #1a5b29;
+            }
+            .btn-warning {
+                background-color: #e67e22; /* Ciemniejszy, bardziej profesjonalny żółty dla Lekarzy */
+                border-color: #e67e22;
+            }
+            .btn-warning:hover {
+                background-color: #d35400; /* Ciemniejszy odcień żółtego przy hover */
+                border-color: #c0392b;
+            }
+            .btn-success.darker {
+                background-color: #2d6a4f; /* Ciemniejszy zielony dla Wizyt */
+                border-color: #2d6a4f;
+            }
+            .btn-success.darker:hover {
+                background-color: #245d42; /* Ciemniejszy odcień zielonego przy hover */
+                border-color: #1e4a35;
+            }
+            .container {
+                max-width: 600px; /* Szerokość kontenera */
+                padding-top: 50px;
             }
         </style>
     </head>
     <body>
-        <div class="container mt-5">
+        <div class="container">
             <h1 class="text-center">Witamy w VetCRM</h1>
             <p class="text-center">Wybierz jedną z opcji, aby zarządzać przychodnią weterynaryjną:</p>
             
-            <div class="list-group">
-                <a href="/adding_client/" class="list-group-item list-group-item-action btn btn-primary btn-lg">Dodaj nowego klienta</a>
-                <a href="/searching_client/" class="list-group-item list-group-item-action btn btn-success btn-lg">Znajdź klienta</a>
-                <a href="/add_next_visit/" class="list-group-item list-group-item-action btn btn-primary btn-lg">Dodaj nową wizytę</a>
-                <a href="/adding_client_and_pet/" class="list-group-item list-group-item-action btn btn-success btn-lg">Dodaj klienta i jego zwierzę</a>
-                <a href="/add_doctor/" class="list-group-item list-group-item-action btn btn-warning btn-lg">Dodaj lekarza</a>
-                <a href="/add_receptionist/" class="list-group-item list-group-item-action btn btn-info btn-lg">Dodaj recepcjonistkę</a>
-                <a href="/visits_table/" class="list-group-item list-group-item-action btn btn-secondary btn-lg">Pokaż listę wizyt</a>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <a href="/clients_list/" class="btn btn-primary">Klienci</a>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <a href="/pet_list/" class="btn btn-success">Zwierzęta</a>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <a href="/doctor_list/" class="btn btn-warning">Lekarze</a>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <a href="/visit_list/" class="btn btn-success darker">Wizyty</a>
+                </div>
             </div>
         </div>
 
@@ -305,6 +331,23 @@ def render_visit_edit_form(visit_id):
 
     return visit_edit_form_html
 
+def render_clients_list(self, template_content, clients):
+        """Generuje HTML z listą klientów, wstawiając dane do szablonu."""
+        clients_html = ""
+        for client in clients:
+            clients_html += f"""
+            <tr>
+                <td>{client['id']}</td>
+                <td>{client['first_name']}</td>
+                <td>{client['last_name']}</td>
+                <td>{client['phone']}</td>
+                <td>{client['address']}</td>
+            </tr>
+            """
+
+        # Wstawiamy dane do szablonu HTML
+        return template_content.replace("{% clients %}", clients_html)
+
 
 class MyHandler(SimpleHTTPRequestHandler):
     def do_GET(self):
@@ -319,6 +362,62 @@ class MyHandler(SimpleHTTPRequestHandler):
             self.send_header("Content-type", "text/html; charset=utf-8")
             self.end_headers()
             self.wfile.write(home_page_html.encode('utf-8'))
+
+
+#######################    LISTA KLIENTÓW  #######################
+
+
+        elif self.path == "/clients_list/":
+            # Pobieramy klientów z bazy danych
+            clients = fetch_clients()
+
+            # Debugowanie: sprawdzamy, co zostało pobrane
+            print(f"Pobrane dane: {clients}")
+
+            # Ścieżka do szablonu HTML
+            template_path = os.path.join(os.getcwd(), 'Templates', 'clients_list.html')
+
+            try:
+                # Odczytujemy zawartość pliku HTML
+                with open(template_path, 'r', encoding='utf-8') as file:
+                    template_content = file.read()
+
+                # Przygotowujemy dane do wstawienia w HTML
+                clients_html = ""
+                for client in clients:
+                    client_id = client[0]  # ID klienta
+                    client_row = f"""
+                    <tr>
+                        <td>{client[0]}</td>
+                        <td>{client[1]}</td>
+                        <td>{client[2]}</td>
+                        <td>{client[3]}</td>
+                        <td>{client[4]}</td>
+                        <td>
+                            <div class="btn-group">
+                                <a href="/edit_client/{client_id}" class="btn btn-edit">Edytuj</a>
+                                <a href="/delete_client/{client_id}" class="btn btn-danger">Usuń</a>
+                            </div>
+                        </td>
+                    </tr>
+                    """
+                    clients_html += client_row  # Dodajemy wiersz dla każdego klienta
+
+                # Zamieniamy placeholder {{ client_rows }} w szablonie na wygenerowany HTML z klientami
+                rendered_content = template_content.replace("{{ client_rows }}", clients_html)
+
+                # Wysyłamy odpowiedź HTTP
+                self.send_response(200)
+                self.send_header("Content-type", "text/html")
+                self.end_headers()
+                self.wfile.write(rendered_content.encode('utf-8'))
+
+            except Exception as e:
+                self.send_response(500)
+                self.send_header("Content-type", "text/html")
+                self.end_headers()
+                error_message = f"Error rendering page: {e}"
+                self.wfile.write(error_message.encode('utf-8'))
 
 
 ########################    DODAWANIE KLIENTA  ################
@@ -494,15 +593,6 @@ class MyHandler(SimpleHTTPRequestHandler):
                 self.send_header("Content-type", "text/html; charset=utf-8")
                 self.end_headers()
                 self.wfile.write(f"<p>Błąd: {e}".encode("utf-8"))
-
-        
-
-        # elif self.path == "/add_new_client_and_pet/":
-        #     add_new_client_and_pet_html = render_add_new_client_and_pet()
-        #     self.send_response(200)
-        #     self.send_header("Content-type", "text/html; charset=utf-8")
-        #     self.end_headers()
-        #     self.wfile.write(add_new_client_and_pet_html.encode('utf-8'))
 
 
         else:
