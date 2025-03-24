@@ -351,7 +351,7 @@ def render_clients_list(self, template_content, clients):
 
 class MyHandler(SimpleHTTPRequestHandler):
     def do_GET(self):
-
+        print(f"Requested path: {self.path}") 
 
 ########################    WYŚWIETLANIE STRONY POWITALNEJ  ################
 
@@ -424,6 +424,7 @@ class MyHandler(SimpleHTTPRequestHandler):
     
 
         elif self.path == "/adding_client/":
+            print(f"Handling GET request for {self.path}") 
             add_client_html = render_add_client()  
             self.send_response(200)
             self.send_header("Content-type", "text/html; charset=utf-8")
@@ -525,25 +526,6 @@ class MyHandler(SimpleHTTPRequestHandler):
                 self.send_header("Content-type", "text/html; charset=utf-8")
                 self.end_headers()
                 self.wfile.write(f"<p>Błąd: {e}".encode("utf-8"))
-
-
-        # elif self.path.startswith("/update/"):
-        #     visit_id = self.path.split("/update/")[1]
-        #     try:
-        #         visit_id = int(visit_id)
-        #         visit_edit_form_html = render_visit_edit_form(visit_id) 
-        #         self.send_response(200)
-        #         self.send_header("Content-type", "text/html; charset=utf-8")
-        #         self.end_headers()
-        #         self.wfile.write(visit_edit_form_html.encode('utf-8'))
-        #     except ValueError:
-        #         print(f"Invalid visit ID format: {visit_id}")  
-        #         self.send_response(404)
-        #         self.send_header("Content-type", "text/html; charset=utf-8")
-        #         self.end_headers()
-        #         self.wfile.write("<p>Niepoprawne ID wizyty.</p>".encode('utf-8'))
-
-
 
 ########################    DODAWANIE NOWEJ WIZYTY  ################
 
@@ -759,10 +741,15 @@ class MyHandler(SimpleHTTPRequestHandler):
 ###################     DODAJEMY NOWEGO KLIENTA      ##################################
 
         elif self.path == "/adding_client/":
+            # Odczytujemy dane POST
             content_length = int(self.headers.get('Content-Length'))
             post_data = self.rfile.read(content_length)
             post_data = post_data.decode('utf-8')
+
+            # Tworzymy słownik z danymi
             data = {item.split('=')[0]: urllib.parse.unquote_plus(item.split('=')[1]) for item in post_data.split('&')}
+
+            # Wywołanie metody obsługującej dodanie klienta
             self.handle_add_client_post(data)
 
 
