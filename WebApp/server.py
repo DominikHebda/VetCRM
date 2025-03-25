@@ -763,7 +763,7 @@ class MyHandler(SimpleHTTPRequestHandler):
             # Pobierz dane z formularza
             first_name = data.get('first_name', '')
             last_name = data.get('last_name', '')
-    
+
             # Upewnij się, że wartości zostały przypisane
             if not first_name or not last_name:
                 self.send_error(400, "Brak wymaganych danych (first_name, last_name).")
@@ -772,20 +772,31 @@ class MyHandler(SimpleHTTPRequestHandler):
             clients = find_client(first_name, last_name)
 
             if clients:
-                # Jeśli znaleziono klientów, wyświetlamy listę
+                # Jeśli znaleziono klientów, wyświetlamy jeden wiersz w tabeli
+                client = clients[0]  # Załóżmy, że znaleziono tylko jednego klienta
+
+                # Wczytaj widok HTML i wstaw dane klienta
+                with open("templates/output_searching_client.html", "r", encoding="utf-8") as file:
+                    html_content = file.read()
+
+                # Zastąp zmienne w HTML danymi klienta
+                html_content = html_content.replace("{{ client_id }}", str(client[0]))
+                html_content = html_content.replace("{{ client_first_name }}", client[1])
+                html_content = html_content.replace("{{ client_last_name }}", client[2])
+                html_content = html_content.replace("{{ client_phone }}", client[3])
+                html_content = html_content.replace("{{ client_address }}", client[4])
+
+                # Wyślij odpowiedź HTML z danymi klienta
                 self.send_response(200)
                 self.send_header("Content-type", "text/html; charset=utf-8")
                 self.end_headers()
-                clients_html = "<h2>Znaleziono klientów:</h2><ul>"
-                for client in clients:
-                    clients_html += f"<li><a href='/update_client/{client[0]}'>Edytuj {client[1]} {client[2]}</a></li>"
-                clients_html += "</ul>"
-                self.wfile.write(clients_html.encode('utf-8'))
+                self.wfile.write(html_content.encode('utf-8'))
             else:
                 self.send_response(404)
                 self.send_header("Content-type", "text/html; charset=utf-8")
                 self.end_headers()
                 self.wfile.write("<p>Nie znaleziono klientów.</p>".encode('utf-8'))
+
 
 
 ###################     UAKTUALNIAMY DANE KLIENTA      ##################################
