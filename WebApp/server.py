@@ -1,5 +1,5 @@
 from Database.operations_visits import fetch_scheduled_visits, fetch_visits_details, update_visit_in_db, format_visit_time, add_next_visit, get_client_id, get_client_data_by_id, get_current_time
-from Database.operations_client import fetch_clients, add_client, find_client, find_client_by_id, update_client, add_client_and_pet_s
+from Database.operations_client import fetch_clients, add_client, find_client, find_client_by_id, update_client, add_client_and_pet_s, soft_delete_client
 from Database.operations_doctors import add_doctor
 from Database.operations_receptionist import add_receptionist
 from Database.operations_pets import add_pet
@@ -395,7 +395,7 @@ class MyHandler(SimpleHTTPRequestHandler):
                         <td>{client[4]}</td>
                         <td>
                             <div class="btn-group">
-                                <a href="/edit_client/{client_id}" class="btn btn-edit">Edytuj</a>
+                                <a href="/update_client/{client_id}" class="btn btn-edit">Edytuj</a>
                                 <a href="/delete_client/{client_id}" class="btn btn-danger">Usuń</a>
                             </div>
                         </td>
@@ -850,6 +850,27 @@ class MyHandler(SimpleHTTPRequestHandler):
             else:
                 # Jeżeli klient nie został znaleziony, zwróć błąd
                 self.send_error(404, "Nie znaleziono klienta.")
+
+
+# #################     USUWAMY KLIENTA SOFT DELETE             ########################################
+
+        elif self.path.startswith('/delete_client/'):
+            # Wyciągamy ID klienta z URL
+            client_id = self.path.split('/')[-1]
+
+            # Wywołanie funkcji soft_delete_client
+            soft_delete_client(client_id)
+
+            # Przekierowanie na stronę z listą klientów po usunięciu
+            self.send_response(303)  # Redirect (przekierowanie)
+            self.send_header('Location', '/clients_list')  # Zmieniamy to na właściwy URL
+            self.end_headers()
+
+                        # Możesz też wyświetlić komunikat, jeśli nie chcesz robić przekierowania:
+                        # self.send_response(200)
+                        # self.send_header("Content-type", "text/html; charset=utf-8")
+                        # self.end_headers()
+                        # self.wfile.write(b'Klient został usunięty.')
 
 
 
