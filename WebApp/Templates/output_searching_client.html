@@ -100,20 +100,8 @@
                 </tr>
             </thead>
             <tbody>
-                <!-- Jeden wiersz z danymi klienta -->
-                <tr>
-                    <td>{{ client_id }}</td>
-                    <td>{{ client_first_name }}</td>
-                    <td>{{ client_last_name }}</td>
-                    <td>{{ client_phone }}</td>
-                    <td>{{ client_address }}</td>
-                    <td>
-                        <div class="btn-group">
-                            <a href="/edit_client/{{ client_id }}" class="btn btn-edit">Edytuj</a>
-                            <a href="/delete_client/{{ client_id }}" class="btn btn-danger">Usuń</a>
-                        </div>
-                    </td>
-                </tr>
+                <!-- Wiersze z danymi klientów będą wstawiane tutaj -->
+                {{ client_rows }}
             </tbody>
         </table>
     </div>

@@ -772,21 +772,36 @@ class MyHandler(SimpleHTTPRequestHandler):
             clients = find_client(first_name, last_name)
 
             if clients:
-                # Jeśli znaleziono klientów, wyświetlamy jeden wiersz w tabeli
-                client = clients[0]  # Załóżmy, że znaleziono tylko jednego klienta
-
-                # Wczytaj widok HTML i wstaw dane klienta
+                # Jeśli znaleziono klientów, wyświetlamy tabelę
+                # Wczytaj widok HTML
                 with open("templates/output_searching_client.html", "r", encoding="utf-8") as file:
                     html_content = file.read()
 
-                # Zastąp zmienne w HTML danymi klienta
-                html_content = html_content.replace("{{ client_id }}", str(client[0]))
-                html_content = html_content.replace("{{ client_first_name }}", client[1])
-                html_content = html_content.replace("{{ client_last_name }}", client[2])
-                html_content = html_content.replace("{{ client_phone }}", client[3])
-                html_content = html_content.replace("{{ client_address }}", client[4])
+                # Generowanie wierszy dla każdego klienta
+                clients_rows = ""
+                for client in clients:
+                    # Generowanie wiersza z danymi klienta
+                    client_row = f"""
+                        <tr>
+                            <td>{client[0]}</td>
+                            <td>{client[1]}</td>
+                            <td>{client[2]}</td>
+                            <td>{client[3]}</td>
+                            <td>{client[4]}</td>
+                            <td>
+                                <div class="btn-group">
+                                    <a href="/update_client/{client[0]}" class="btn btn-edit">Edytuj</a>
+                                    <a href="/delete_client/{client[0]}" class="btn btn-danger">Usuń</a>
+                                </div>
+                            </td>
+                        </tr>
+                    """
+                    clients_rows += client_row  # Dodajemy wiersz do tabeli
 
-                # Wyślij odpowiedź HTML z danymi klienta
+                # Zastąpienie zmiennych w szablonie
+                html_content = html_content.replace("{{ client_rows }}", clients_rows)
+
+                # Wyślij odpowiedź HTML z danymi klientów
                 self.send_response(200)
                 self.send_header("Content-type", "text/html; charset=utf-8")
                 self.end_headers()
@@ -796,6 +811,7 @@ class MyHandler(SimpleHTTPRequestHandler):
                 self.send_header("Content-type", "text/html; charset=utf-8")
                 self.end_headers()
                 self.wfile.write("<p>Nie znaleziono klientów.</p>".encode('utf-8'))
+
 
 
 
