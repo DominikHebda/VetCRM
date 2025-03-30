@@ -78,6 +78,15 @@
             background-color: darkred;
             border-color: darkred;
         }
+
+        /* Stylowanie daty usunięcia */
+        td {
+            max-width: 200px; /* Ograniczamy szerokość komórki */
+            white-space: nowrap; /* Zapobiegamy łamaniu tekstu */
+            overflow: hidden;
+            text-overflow: ellipsis; /* Jeśli tekst jest zbyt długi, pokazujemy elipsę */
+        }
+
     </style>
 </head>
 <body>
@@ -96,27 +105,11 @@
                     <th>Nazwisko</th>
                     <th>Telefon</th>
                     <th>Adres</th>
+                    <th>Data usunięcia</th>
                     <th>Akcje</th>
                 </tr>
             </thead>
             <tbody>
-                <!-- Przykładowy wiersz klienta -->
-                <tr>
-                    <td>1</td>
-                    <td>Jan</td>
-                    <td>Kowalski</td>
-                    <td>123456789</td>
-                    <td>ul. Przykładowa 1</td>
-                    <td>
-                        <div class="btn-group">
-                            <!-- Przycisk Edytuj z pomarańczowym kolorem -->
-                            <a href="/update_client/1" class="btn btn-edit">Edytuj</a>
-                            <!-- Przycisk Usuń z czerwonym kolorem -->
-                            <a href="/delete_client/1" class="btn btn-danger">Usuń</a>
-                        </div>
-                    </td>
-                </tr>
-                <!-- Placeholder do wstawienia wierszy -->
                 {{ client_rows }}
             </tbody>
         </table>
@@ -128,4 +121,3 @@
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 </body>
 </html>
-

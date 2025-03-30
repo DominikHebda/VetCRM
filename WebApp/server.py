@@ -386,6 +386,9 @@ class MyHandler(SimpleHTTPRequestHandler):
                 clients_html = ""
                 for client in clients:
                     client_id = client[0]  # ID klienta
+                    deletion_date = client[5].strftime('%Y-%m-%d %H:%M:%S') if client[5] else "Klient aktywny"
+
+                    # Tworzymy wiersz tabeli, uwzględniając datę usunięcia
                     client_row = f"""
                     <tr>
                         <td>{client[0]}</td>
@@ -393,6 +396,7 @@ class MyHandler(SimpleHTTPRequestHandler):
                         <td>{client[2]}</td>
                         <td>{client[3]}</td>
                         <td>{client[4]}</td>
+                        <td>{deletion_date}</td>  <!-- Dodajemy datę usunięcia -->
                         <td>
                             <div class="btn-group">
                                 <a href="/update_client/{client_id}" class="btn btn-edit">Edytuj</a>
@@ -576,6 +580,25 @@ class MyHandler(SimpleHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(f"<p>Błąd: {e}".encode("utf-8"))
 
+
+        elif self.path.startswith("/delete_client/"):
+                client_id = self.path.split('/')[-1]  # Pobieramy ID klienta z URL
+
+                # Usuwamy klienta (soft delete) z bazy danych
+                try:
+                    soft_delete_client(client_id)  # Funkcja, która oznacza klienta jako usuniętego
+                    # Przekierowanie na stronę z listą klientów po usunięciu
+                    self.send_response(303)  # Kod statusu: See Other (przekierowanie)
+                    self.send_header('Location', '/clients_list/')  # Przekierowanie do listy klientów
+                    self.end_headers()
+
+                except Exception as e:
+                    # Obsługa błędów, np. klient nie został znaleziony
+                    self.send_response(500)
+                    self.send_header("Content-type", "text/html")
+                    self.end_headers()
+                    error_message = f"Error deleting client: {e}"
+                    self.wfile.write(error_message.encode('utf-8'))
 
         else:
             super().do_GET()
@@ -850,29 +873,6 @@ class MyHandler(SimpleHTTPRequestHandler):
             else:
                 # Jeżeli klient nie został znaleziony, zwróć błąd
                 self.send_error(404, "Nie znaleziono klienta.")
-
-
-# #################     USUWAMY KLIENTA SOFT DELETE             ########################################
-
-        elif self.path.startswith('/delete_client/'):
-            # Wyciągamy ID klienta z URL
-            client_id = self.path.split('/')[-1]
-
-            # Wywołanie funkcji soft_delete_client
-            soft_delete_client(client_id)
-
-            # Przekierowanie na stronę z listą klientów po usunięciu
-            self.send_response(303)  # Redirect (przekierowanie)
-            self.send_header('Location', '/clients_list')  # Zmieniamy to na właściwy URL
-            self.end_headers()
-
-                        # Możesz też wyświetlić komunikat, jeśli nie chcesz robić przekierowania:
-                        # self.send_response(200)
-                        # self.send_header("Content-type", "text/html; charset=utf-8")
-                        # self.end_headers()
-                        # self.wfile.write(b'Klient został usunięty.')
-
-
 
 
 ###################     DODAJEMY NOWEGO KLIENTA I JEGO ZWIERZĘ      ##################################

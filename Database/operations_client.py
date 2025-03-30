@@ -13,7 +13,7 @@ def fetch_clients():
         print("Połączenie z bazą danych nawiązane.")  # Debugowanie
         if connection:
             cursor = connection.cursor()
-            cursor.execute("SELECT * FROM clients")  # Zapytanie do bazy
+            cursor.execute("SELECT id, first_name, last_name, phone, address, soft_delete FROM clients")
             results = cursor.fetchall()  # Pobiera wszystkie wyniki
 
             print("Dane pobrane z bazy:")  # Debugowanie
@@ -221,57 +221,35 @@ def update_client(client_id, first_name, last_name, phone, address):
 # update_client()
 
 
-def soft_delete_client():
-    """Soft delete klienta na podstawie jego ID, po wcześniejszym wyszukaniu."""
-    # Wyszukaj klientów
-    clients = find_client()
-    if not clients:
-        return  # Jeśli nie znaleziono żadnych klientów, kończymy działanie
-
+def soft_delete_client(client_id):
+    """Oznacza klienta jako usuniętego w bazie danych (soft delete)"""
     try:
-        # Pytamy użytkownika o ID klienta, którego chce usunąć
-        client_id = int(input("Podaj ID klienta, którego chcesz usunąć (soft delete): "))
-
-        # Sprawdzamy, czy klient o podanym ID istnieje w wynikach wyszukiwania
-        selected_client = None
-        for client in clients:
-            if client[0] == client_id:  # Zakładając, że ID klienta jest w pierwszej kolumnie
-                selected_client = client
-                break
-
-        if not selected_client:
-            print(f"Nie znaleziono klienta o ID {client_id}.")
-            return
-
-        print(f"Wybrano klienta: {selected_client[1]} {selected_client[2]} (ID: {selected_client[0]})")
-
-        # Pobieramy bieżącą datę i godzinę
-        current_time = datetime.now()
-
-        # Połączenie z bazą danych i wykonanie zapytania aktualizującego 
+        # Tworzymy połączenie z bazą danych
         connection = create_connection()
-        cursor = connection.cursor()
+        if connection:
+            cursor = connection.cursor()
 
-        query = """
-        UPDATE client
-        SET soft_delete = %s
-        WHERE idClient = %s AND soft_delete IS NULL
-        """
-        cursor.execute(query, (current_time, client_id))
-        connection.commit()
+            # Pobieramy bieżącą datę i godzinę
+            current_time = datetime.now()
 
-        # Sprawdzamy, czy rekord został zaktualizowany
-        if cursor.rowcount > 0:
-            print(f"Klient o ID {client_id} został oznaczony jako usunięty.")
-        else:
-            print(f"Nie udało się oznaczyć klienta o ID {client_id} jako usuniętego.")
+            # Zapytanie SQL do oznaczenia klienta jako usuniętego
+            query = """
+            UPDATE clients
+            SET soft_delete = %s
+            WHERE id = %s AND soft_delete IS NULL
+            """
+            cursor.execute(query, (current_time, client_id))
 
-        cursor.close()
-        connection.close()
+            connection.commit()  # Zatwierdzamy zmiany w bazie danych
 
-    except ValueError:
-        print("Błąd: Podano nieprawidłowe ID.")
+            # Sprawdzamy, czy zapytanie zaktualizowało jakikolwiek rekord
+            if cursor.rowcount > 0:
+                print(f"Klient o ID {client_id} został oznaczony jako usunięty.")
+            else:
+                print(f"Nie udało się oznaczyć klienta o ID {client_id} jako usuniętego.")
+            
+            cursor.close()
+            connection.close()
+
     except Exception as e:
         print(f"Błąd podczas oznaczania klienta jako usuniętego: {e}")
-
-# soft_delete_client()
