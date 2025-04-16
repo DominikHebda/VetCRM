@@ -1,6 +1,7 @@
 from datetime import datetime
 from Database.connection import create_connection
 
+# POBIERANIE LISTY LEKARZY
 def fetch_doctors():
     try:
         connection = create_connection()
@@ -12,12 +13,14 @@ def fetch_doctors():
                 print(row)
             cursor.close()
             connection.close()
+            return results
     except Exception as e:
         print(f"Błąd podczas pobierania danych: {e}")
+        return []
   
 # fetch_doctors()
 
-def add_doctor(first_name, last_name, specialization):
+def add_doctor(first_name, last_name, specialization, telefon):
     try:
         connection = create_connection()
         if connection:
@@ -26,11 +29,11 @@ def add_doctor(first_name, last_name, specialization):
             cursor.execute("SET NAMES 'utf8mb4'")
 
             query = """
-            INSERT INTO doctors (first_name, last_name, specialization)
-            values (%s, %s, %s)
+            INSERT INTO doctors (first_name, last_name, specialization, telefon)
+            values (%s, %s, %s, %s)
             """
 
-            cursor.execute(query, (first_name, last_name, specialization))
+            cursor.execute(query, (first_name, last_name, specialization, telefon))
             connection.commit()
             print(f"Lekarz {first_name} {last_name} został dodany.")
             cursor.close()

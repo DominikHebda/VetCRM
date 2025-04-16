@@ -1,6 +1,6 @@
 from Database.operations_visits import fetch_scheduled_visits, fetch_visits_details, update_visit_in_db, format_visit_time, add_next_visit, get_client_id, get_client_data_by_id, get_current_time
 from Database.operations_client import fetch_clients, add_client, find_client, find_client_by_id, update_client, add_client_and_pet_s, soft_delete_client
-from Database.operations_doctors import add_doctor
+from Database.operations_doctors import add_doctor, fetch_doctors
 from Database.operations_receptionist import add_receptionist
 from Database.operations_pets import add_pet
 from Database.connection import create_connection
@@ -91,7 +91,7 @@ def render_home_page():
             </div>
             <div class="row">
                 <div class="col-md-6 mb-3">
-                    <a href="/doctor_list/" class="btn btn-warning">Lekarze</a>
+                    <a href="/doctors_list/" class="btn btn-warning">Lekarze</a>
                 </div>
                 <div class="col-md-6 mb-3">
                     <a href="/visit_list/" class="btn btn-success darker">Wizyty</a>
@@ -207,7 +207,7 @@ def render_visit_details(visit_id):
 
     return visit_details_html
 
-def render_add_doctor_form():
+def render_add_doctor():
     with open("templates/adding_doctors.html", "r", encoding="utf-8") as f:
         add_doctor_form_html = f.read()
 
@@ -424,6 +424,66 @@ class MyHandler(SimpleHTTPRequestHandler):
                 self.wfile.write(error_message.encode('utf-8'))
 
 
+#######################    LISTA LEKARZY  #######################
+
+
+        elif self.path == "/doctors_list/":
+            # Pobieramy lekarzyklientów z bazy danych
+            doctors = fetch_doctors()
+
+            # Debugowanie: sprawdzamy, co zostało pobrane
+            print(f"Pobrane dane: {doctors}")
+
+            # Ścieżka do szablonu HTML
+            template_path = os.path.join(os.getcwd(), 'Templates', 'doctors_list.html')
+
+            try:
+                # Odczytujemy zawartość pliku HTML
+                with open(template_path, 'r', encoding='utf-8') as file:
+                    template_content = file.read()
+
+                # Przygotowujemy dane do wstawienia w HTML
+                doctors_html = ""
+                for doctor in doctors:
+                    doctor_id = doctor[0]  # ID lekarza
+                    deletion_date = doctor[5].strftime('%Y-%m-%d %H:%M:%S') if doctor[5] else "Klient aktywny"
+
+                    # Tworzymy wiersz tabeli, uwzględniając datę usunięcia
+                    doctor_row = f"""
+                    <tr>
+                        <td>{doctor[0]}</td>
+                        <td>{doctor[1]}</td>
+                        <td>{doctor[2]}</td>
+                        <td>{doctor[3]}</td>
+                        <td>{doctor[4]}</td>
+                        <td>{deletion_date}</td>  <!-- Dodajemy datę usunięcia -->
+                        <td>
+                            <div class="btn-group">
+                                <a href="/update_doctor/{doctor_id}" class="btn btn-edit">Edytuj</a>
+                                <a href="/delete_doctor/{doctor_id}" class="btn btn-danger">Usuń</a>
+                            </div>
+                        </td>
+                    </tr>
+                    """
+                    doctors_html += doctor_row  # Dodajemy wiersz dla każdego klienta
+
+                # Zamieniamy placeholder {{ doctors_rows }} w szablonie na wygenerowany HTML z klientami
+                rendered_content = template_content.replace("{{ doctor_rows }}", doctors_html)
+
+                # Wysyłamy odpowiedź HTTP
+                self.send_response(200)
+                self.send_header("Content-type", "text/html")
+                self.end_headers()
+                self.wfile.write(rendered_content.encode('utf-8'))
+
+            except Exception as e:
+                self.send_response(500)
+                self.send_header("Content-type", "text/html")
+                self.end_headers()
+                error_message = f"Error rendering page: {e}"
+                self.wfile.write(error_message.encode('utf-8'))
+
+
 ########################    DODAWANIE KLIENTA  ################
     
 
@@ -434,6 +494,19 @@ class MyHandler(SimpleHTTPRequestHandler):
             self.send_header("Content-type", "text/html; charset=utf-8")
             self.end_headers()
             self.wfile.write(add_client_html.encode('utf-8'))
+
+
+########################    DODAWANIE LEKARZA  ################
+    
+
+        elif self.path == "/adding_doctors/":
+            print(f"Handling GET request for {self.path}") 
+            add_doctor_html = render_add_doctor()  
+            self.send_response(200)
+            self.send_header("Content-type", "text/html; charset=utf-8")
+            self.end_headers()
+            self.wfile.write(add_doctor_html.encode('utf-8'))
+
 
 
 ########################    WYSZUKIWANIE KLIENTA  ################
@@ -555,7 +628,7 @@ class MyHandler(SimpleHTTPRequestHandler):
 
         elif self.path == "/add_doctor/":
             try:
-                final_html = render_add_doctor_form()
+                final_html = render_add_doctor()
                 self.send_response(200)
                 self.send_header("Content-type", "text/html; charset=utf-8")
                 self.end_headers()
