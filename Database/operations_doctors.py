@@ -20,20 +20,19 @@ def fetch_doctors():
   
 # fetch_doctors()
 
-def add_doctor(first_name, last_name, specialization, telefon):
+def add_doctor(first_name, last_name, specialization, phone):
     try:
         connection = create_connection()
         if connection:
             cursor = connection.cursor()
 
-            cursor.execute("SET NAMES 'utf8mb4'")
-
             query = """
-            INSERT INTO doctors (first_name, last_name, specialization, telefon)
+            INSERT INTO doctors (first_name, last_name, specialization, phone)
             values (%s, %s, %s, %s)
             """
-
-            cursor.execute(query, (first_name, last_name, specialization, telefon))
+            cursor.execute("SET NAMES 'utf8mb4'")
+            print(f"Adding doctor: {first_name}, {last_name}, {specialization}, {phone}")
+            cursor.execute(query, (first_name, last_name, specialization, phone))
             connection.commit()
             print(f"Lekarz {first_name} {last_name} został dodany.")
             cursor.close()

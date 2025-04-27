@@ -626,18 +626,19 @@ class MyHandler(SimpleHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(adding_client_and_pet_form_html.encode('utf-8'))
 
-        elif self.path == "/add_doctor/":
-            try:
-                final_html = render_add_doctor()
-                self.send_response(200)
-                self.send_header("Content-type", "text/html; charset=utf-8")
-                self.end_headers()
-                self.wfile.write(final_html.encode("utf-8"))
-            except Exception as e:
-                self.send_response(500)
-                self.send_header("Content-type", "text/html; charset=utf-8")
-                self.end_headers()
-                self.wfile.write(f"<p>Błąd: {e}".encode("utf-8"))
+# ##################################################################################################
+        # elif self.path == "/add_doctor/":
+        #     try:
+        #         final_html = render_add_doctor()
+        #         self.send_response(200)
+        #         self.send_header("Content-type", "text/html; charset=utf-8")
+        #         self.end_headers()
+        #         self.wfile.write(final_html.encode("utf-8"))
+        #     except Exception as e:
+        #         self.send_response(500)
+        #         self.send_header("Content-type", "text/html; charset=utf-8")
+        #         self.end_headers()
+        #         self.wfile.write(f"<p>Błąd: {e}".encode("utf-8"))
 
 
         elif self.path == "/add_receptionist/":
@@ -849,6 +850,26 @@ class MyHandler(SimpleHTTPRequestHandler):
             self.handle_add_client_post(data)
 
 
+###############         DODAJEMY NOWEGO LEKARZA         ###########################
+
+
+        elif self.path == "/adding_doctors/":
+            content_length = int(self.headers['Content-Length'])
+            post_data = self.rfile.read(content_length)
+            post_data = post_data.decode('utf-8')
+
+            print("RAW post_data:")
+            print(post_data)
+
+            data = {item.split('=')[0]: urllib.parse.unquote_plus(item.split('=')[1]) for item in post_data.split('&')}
+            
+            print("Parsed data:")
+            print(data)
+
+            print(post_data)  # Sprawdzić, co jest przesyłane
+            self.handle_add_doctor_post(data)
+
+
 ###################     WYSZUKUJEMY KLIENTA      ##################################
 
         elif self.path == "/searching_client/":
@@ -950,66 +971,64 @@ class MyHandler(SimpleHTTPRequestHandler):
 
 ###################     DODAJEMY NOWEGO KLIENTA I JEGO ZWIERZĘ      ##################################
 
-        elif self.path.startswith("/adding_client_and_pet/"):
-            try:
-                # Parsowanie danych z formularza
-                content_length = int(self.headers.get('Content-Length'))
-                post_data = self.rfile.read(content_length)
-                data = urllib.parse.parse_qs(post_data.decode('utf-8'))
+        # elif self.path.startswith("/adding_client_and_pet/"):
+        #     try:
+        #         # Parsowanie danych z formularza
+        #         content_length = int(self.headers.get('Content-Length'))
+        #         post_data = self.rfile.read(content_length)
+        #         data = urllib.parse.parse_qs(post_data.decode('utf-8'))
 
-                first_name = data.get('client_first_name', [''])[0]
-                last_name = data.get('client_last_name', [''])[0]
-                phone = data.get('client_phone', [''])[0]
-                address = data.get('client_address', [''])[0]
-                pet_name = data.get('pet_name', [''])[0]
-                species = data.get('species', [''])[0]
-                breed = data.get('breed', [''])[0]
-                age = int(data.get('age', ['0'])[0])
+        #         first_name = data.get('client_first_name', [''])[0]
+        #         last_name = data.get('client_last_name', [''])[0]
+        #         phone = data.get('client_phone', [''])[0]
+        #         address = data.get('client_address', [''])[0]
+        #         pet_name = data.get('pet_name', [''])[0]
+        #         species = data.get('species', [''])[0]
+        #         breed = data.get('breed', [''])[0]
+        #         age = int(data.get('age', ['0'])[0])
 
-                # Dodanie klienta i zwierzęcia
-                added_client_and_pet = add_client_and_pet_s(
-                    first_name=first_name,
-                    last_name=last_name,
-                    phone=phone,
-                    address=address,
-                    pet_name=pet_name,
-                    species=species,
-                    breed=breed,
-                    age=age
-                )
+        #         # Dodanie klienta i zwierzęcia
+        #         added_client_and_pet = add_client_and_pet_s(
+        #             first_name=first_name,
+        #             last_name=last_name,
+        #             phone=phone,
+        #             address=address,
+        #             pet_name=pet_name,
+        #             species=species,
+        #             breed=breed,
+        #             age=age
+        #         )
 
-                if added_client_and_pet:
-                    self.send_response(200)
-                    self.send_header("Content-type", "text/html; charset=utf-8")
-                    self.end_headers()
-                    self.wfile.write("<p>Klient i zwierzę zostali zapisani</p>".encode('utf-8'))
-                else:
-                    print("Klient i zwierzę nie zostali zapisani.")
-                    self.send_response(500)
-                    self.send_header("Content-type", "text/html; charset=utf-8")
-                    self.end_headers()
-                    self.wfile.write("<p>Wystąpił błąd podczas zapisywania klienta i zwierzęcia.</p>".encode('utf-8'))
+        #         if added_client_and_pet:
+        #             self.send_response(200)
+        #             self.send_header("Content-type", "text/html; charset=utf-8")
+        #             self.end_headers()
+        #             self.wfile.write("<p>Klient i zwierzę zostali zapisani</p>".encode('utf-8'))
+        #         else:
+        #             print("Klient i zwierzę nie zostali zapisani.")
+        #             self.send_response(500)
+        #             self.send_header("Content-type", "text/html; charset=utf-8")
+        #             self.end_headers()
+        #             self.wfile.write("<p>Wystąpił błąd podczas zapisywania klienta i zwierzęcia.</p>".encode('utf-8'))
 
-            except Exception as e:
-                print(f"Błąd podczas przetwarzania POST: {e}")
-                self.send_response(500)
-                self.send_header("Content-type", "text/html; charset=utf-8")
-                self.end_headers()
-                self.wfile.write(f"<p>Błąd: {e}</p>".encode('utf-8'))
+        #     except Exception as e:
+        #         print(f"Błąd podczas przetwarzania POST: {e}")
+        #         self.send_response(500)
+        #         self.send_header("Content-type", "text/html; charset=utf-8")
+        #         self.end_headers()
+        #         self.wfile.write(f"<p>Błąd: {e}</p>".encode('utf-8'))
 
-        elif self.path == "/add_doctor/":
-            content_length = int(self.headers['Content-Length'])
-            post_data = self.rfile.read(content_length).decode('utf-8')
-            data = {item.split('=')[0]: urllib.parse.unquote_plus(item.split('=')[1]) for item in post_data.split('&')}
-            self.handle_add_doctor_post(data)
-            
-            print(post_data)  # Sprawdzić, co jest przesyłane
+
+
 
         elif self.path == "/add_receptionist/":
             content_length = int(self.headers['Content-Length'])
             post_data = self.rfile.read(content_length).decode('utf-8')
             data = {item.split('=')[0]: urllib.parse.unquote_plus(item.split('=')[1]) for item in post_data.split('&')}
             self.handle_add_receptionist_post(data)
+
+# ############################  DEF ADDING POST  ################################
+
 
     def handle_add_client_post(self, data):
         first_name = data.get('client_first_name', '')
@@ -1030,6 +1049,26 @@ class MyHandler(SimpleHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(f"<p>Wystąpił błąd: {e}</p>".encode('utf-8'))
 
+
+    def handle_add_doctor_post(self, data):
+        first_name = data.get('doctor_first_name', '')
+        last_name = data.get('doctor_last_name', '')
+        specialization = data.get('doctor_specialization', '')
+        phone = data.get('telefon', '')
+        try:
+            add_doctor(first_name, last_name, specialization, phone)
+            self.send_response(200)
+            self.send_header("Content-type", "text/html; charset=utf-8")
+            self.end_headers()
+            self.wfile.write("<p>Doktor został dodany do bazy danych!<p>".encode('utf-8'))
+        except Exception as e:
+            self.send_response(500)
+            self.send_header("Content-type", "text/html; charset=utf-8")
+            self.end_headers()
+            self.wfile.write(f"<p>Wystąpił błąd: {e}<p>".encode('utf-8'))
+
+
+
     def handle_search_client_post(self, data):
         first_name = data.get('client_first_name', '')
         last_name = data.get('client_last_name', '')
@@ -1047,27 +1086,27 @@ class MyHandler(SimpleHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(f"<p>Wystąpił błąd: {e}</p>".encode('utf-8'))
 
-    # Przenosimy metodę handle_add_doctor_post na poziom klasy
-    def handle_add_doctor_post(self, data):
-        first_name = data.get('doctor_first_name', '')
-        last_name = data.get('doctor_last_name', '')
-        specialization = data.get('doctor_specialization', '')
+    # # Przenosimy metodę handle_add_doctor_post na poziom klasy
+    # def handle_add_doctor_post(self, data):
+    #     first_name = data.get('doctor_first_name', '')
+    #     last_name = data.get('doctor_last_name', '')
+    #     specialization = data.get('doctor_specialization', '')
 
-        try:
-            # Wywołanie funkcji do dodania lekarza
-            add_doctor(first_name, last_name, specialization)
+    #     try:
+    #         # Wywołanie funkcji do dodania lekarza
+    #         add_doctor(first_name, last_name, specialization)
 
-            # Wysłanie odpowiedzi HTTP
-            self.send_response(200)
-            self.send_header("Content-type", "text/html; charset=utf-8")
-            self.end_headers()
-            self.wfile.write("<p>Doktor został dodany do bazy danych!</p>".encode('utf-8'))
-        except Exception as e:
-            # Wysłanie odpowiedzi HTTP w przypadku błędu
-            self.send_response(500)
-            self.send_header("Content-type", "text/html; charset=utf-8")
-            self.end_headers()
-            self.wfile.write(f"<p>Wystąpił błąd: {e}</p>".encode('utf-8'))
+    #         # Wysłanie odpowiedzi HTTP
+    #         self.send_response(200)
+    #         self.send_header("Content-type", "text/html; charset=utf-8")
+    #         self.end_headers()
+    #         self.wfile.write("<p>Doktor został dodany do bazy danych!</p>".encode('utf-8'))
+    #     except Exception as e:
+    #         # Wysłanie odpowiedzi HTTP w przypadku błędu
+    #         self.send_response(500)
+    #         self.send_header("Content-type", "text/html; charset=utf-8")
+    #         self.end_headers()
+    #         self.wfile.write(f"<p>Wystąpił błąd: {e}</p>".encode('utf-8'))
 
     def handle_add_receptionist_post(self, data):
         first_name = data.get('receptionist_first_name', '')

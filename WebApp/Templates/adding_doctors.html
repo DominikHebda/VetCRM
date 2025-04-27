@@ -5,70 +5,35 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dodaj lekarza</title>
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        body {
-            background-color: #f7fdf4;
-        }
-        h1 {
-            color: #28a745;
-            text-align: center;
-            margin-top: 20px;
-        }
-        .form-container {
-            max-width: 600px;
-            margin: 0 auto;
-            background-color: #ffffff;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
-        }
-        .form-group label {
-            font-weight: bold;
-        }
-        .form-group input {
-            border: 1px solid #ced4da;
-            border-radius: 4px;
-            padding: 10px;
-            width: 100%;
-        }
-        .btn-submit {
-            background-color: #28a745;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            font-size: 16px;
-            border-radius: 4px;
-            width: 100%;
-        }
-        .btn-submit:hover {
-            background-color: #218838;
-        }
-        .back-link {
-            display: block;
-            text-align: center;
-            margin-top: 20px;
-        }
-    </style>
 </head>
 <body>
-    <h1>Dodaj lekarza</h1>
-    <div class="form-container">
-        <form method="POST" action="/adding_doctors/" enctype="application/x-www-form-urlencoded; charset=UTF-8">
+    <div class="container mt-4">
+        <h1>Dodaj lekarza</h1>
+        <form method="POST" action="/adding_doctors/">
             <div class="form-group">
-                <label for="doctor_first_name">Podaj imię lekarza:</label>
+                <label for="doctor_first_name">Imię lekarza:</label>
                 <input type="text" id="doctor_first_name" name="doctor_first_name" class="form-control" required />
             </div>
+
             <div class="form-group">
-                <label for="doctor_last_name">Podaj nazwisko lekarza:</label>
+                <label for="doctor_last_name">Nazwisko lekarza:</label>
                 <input type="text" id="doctor_last_name" name="doctor_last_name" class="form-control" required />
             </div>
+
             <div class="form-group">
                 <label for="doctor_specialization">Podaj specjalizację:</label>
                 <input type="text" id="doctor_specialization" name="doctor_specialization" class="form-control" required />
             </div>
-            <button type="submit" class="btn-submit">Zapisz lekarza</button>
+
+            <div class="form-group">
+                <label for="telefon">Podaj telefon:</label>
+                <input type="text" id="telefon" name="telefon" class="form-control" required />
+            </div>
+
+            <button type="submit" class="btn btn-success">Zapisz lekarza</button>
         </form>
-        <p class="back-link"><a href="/">Powrót do strony głównej</a></p>
+
+        <p class="mt-4"><a href="/" class="btn btn-primary">Powrót do strony głównej</a></p>
     </div>
 
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
