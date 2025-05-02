@@ -1,6 +1,10 @@
 from Database.operations_visits import fetch_scheduled_visits, fetch_visits_details, update_visit_in_db, format_visit_time, add_next_visit, get_client_id, get_client_data_by_id, get_current_time
 from Database.operations_client import fetch_clients, add_client, find_client, find_client_by_id, update_client, add_client_and_pet_s, soft_delete_client
-from Database.operations_doctors import add_doctor, fetch_doctors
+import Database.operations_doctors
+print(dir(Database.operations_doctors))
+print(">>> Ładuje się właściwy plik operations_doctors.py")
+
+from Database.operations_doctors import add_doctor, fetch_doctors, find_doctor_by_id, find_doctor, update_doctor
 from Database.operations_receptionist import add_receptionist
 from Database.operations_pets import add_pet
 from Database.connection import create_connection
@@ -244,11 +248,23 @@ def render_search_client():
 
     return search_client_html
 
+def render_search_doctor():
+    with open("templates/searching_doctor.html", "r", encoding="utf-8") as f:
+        search_doctor_html = f.read()
+
+    return search_doctor_html
+
 def render_update_client():
     with open("templates/update_client", "r", encoding="utf-8") as f:
         update_client_html = f.read()
 
     return update_client_html
+
+def render_update_doctor():
+    with open("templates/update_doctor", "r", encoding="utf-8") as f:
+        update_doctor_html = f.read()
+    
+    return update_doctor_html
 
 ###################     DODAJEMY NOWEGO KLIENTA I JEGO ZWIERZĘ      ##################################
 
@@ -446,7 +462,7 @@ class MyHandler(SimpleHTTPRequestHandler):
                 doctors_html = ""
                 for doctor in doctors:
                     doctor_id = doctor[0]  # ID lekarza
-                    deletion_date = doctor[5].strftime('%Y-%m-%d %H:%M:%S') if doctor[5] else "Klient aktywny"
+                    deletion_date = doctor[5].strftime('%Y-%m-%d %H:%M:%S') if doctor[5] else "Lekarz aktywny"
 
                     # Tworzymy wiersz tabeli, uwzględniając datę usunięcia
                     doctor_row = f"""
@@ -519,6 +535,18 @@ class MyHandler(SimpleHTTPRequestHandler):
             self.wfile.write(search_client_html.encode('utf-8'))
 
 
+
+########################    WYSZUKIWANIE LEKARZA ################
+
+        elif self.path == "/searching_doctor/":
+            search_client_html = render_search_doctor()  
+            self.send_response(200)
+            self.send_header("Content-type", "text/html; charset=utf-8")
+            self.end_headers()
+            self.wfile.write(search_client_html.encode('utf-8'))
+
+
+
 ########################    UAKTUALNIAMY DANE KLIENTA  ################
 
 
@@ -565,9 +593,50 @@ class MyHandler(SimpleHTTPRequestHandler):
                 self.send_error(404, "Klient nie znaleziony")
 
 
+########################    UAKTUALNIAMY DANE LEKARZA  ################
 
 
+        elif self.path.startswith("/update_doctor/"):
+                    # Zakładając, że doctor_id jest częścią ścieżki URL
+                    doctor_id = self.path.split("/")[2]  # Wyciągamy doctor_id z URL
 
+                    # Sprawdzamy, czy doktor istnieje na podstawie ID
+                    doctor = find_doctor_by_id(doctor_id)  # Wywołujemy find_doctor, która oczekuje doctor_id
+
+                    if doctor:
+                        # Przygotowujemy dane doktora do przekazania do szablonu
+                        doctor_data = {
+                            "doctor_id": doctor[0],
+                            "first_name": doctor[1],
+                            "last_name": doctor[2],
+                            "specialization": doctor[3],
+                            "phone": doctor[4]
+                        }
+
+                        # Wczytanie szablonu HTML
+                        try:
+                            template_path = os.path.join(os.path.dirname(__file__), 'Templates', 'update_doctor.html')
+                            print(f"Template path: {template_path}")  # Dodajemy logowanie ścieżki
+
+                            if os.path.exists(template_path):
+                                with open(template_path, "r", encoding="utf-8") as f:
+                                    template = f.read()
+                                
+                                # Zastępujemy zmienne w szablonie
+                                for key, value in doctor_data.items():
+                                    template = template.replace(f"{{{{ {key} }}}}", str(value))
+
+                                # Wysyłamy odpowiedź z HTML
+                                self.send_response(200)
+                                self.send_header("Content-type", "text/html; charset=utf-8")
+                                self.end_headers()
+                                self.wfile.write(template.encode('utf-8'))
+                            else:
+                                self.send_error(404, "Plik szablonu nie znaleziony")
+                        except FileNotFoundError:
+                            self.send_error(404, "Plik szablonu nie znaleziony")
+                    else:
+                        self.send_error(404, "Doctor nie znaleziony")
 
             
 
@@ -674,10 +743,15 @@ class MyHandler(SimpleHTTPRequestHandler):
                     error_message = f"Error deleting client: {e}"
                     self.wfile.write(error_message.encode('utf-8'))
 
+
+
         else:
             super().do_GET()
 
     def do_POST(self):
+
+
+
         if self.path.startswith("/update/"):
             visit_id = self.path.split("/update/")[1]
             try:
@@ -931,6 +1005,65 @@ class MyHandler(SimpleHTTPRequestHandler):
 
 
 
+###################     WYSZUKUJEMY LEKARZA    ##################################
+
+        elif self.path == "/searching_doctor/":
+            content_length = int(self.headers.get('Content-Length'))
+            post_data = self.rfile.read(content_length)
+            data = {item.split('=')[0]: urllib.parse.unquote_plus(item.split('=')[1]) for item in post_data.decode('utf-8').split('&')}
+
+            # Pobierz dane z formularza
+            first_name = data.get('first_name', '')
+            last_name = data.get('last_name', '')
+
+            # Upewnij się, że wartości zostały przypisane
+            if not first_name or not last_name:
+                self.send_error(400, "Brak wymaganych danych (first_name, last_name).")
+                return
+
+            doctors = find_doctor(first_name, last_name)
+
+            if doctors:
+                # Jeśli znaleziono klientów, wyświetlamy tabelę
+                # Wczytaj widok HTML
+                with open("templates/output_searching_doctor.html", "r", encoding="utf-8") as file:
+                    html_content = file.read()
+
+                # Generowanie wierszy dla każdego klienta
+                doctors_rows = ""
+                for doctor in doctors:
+                    # Generowanie wiersza z danymi klienta
+                    doctor_row = f"""
+                        <tr>
+                            <td>{doctor[0]}</td>
+                            <td>{doctor[1]}</td>
+                            <td>{doctor[2]}</td>
+                            <td>{doctor[3]}</td>
+                            <td>{doctor[4]}</td>
+                            <td>
+                                <div class="btn-group">
+                                    <a href="/update_doctor/{doctor[0]}" class="btn btn-edit">Edytuj</a>
+                                    <a href="/delete_doctor/{doctor[0]}" class="btn btn-danger">Usuń</a>
+                                </div>
+                            </td>
+                        </tr>
+                    """
+                    doctors_rows += doctor_row  # Dodajemy wiersz do tabeli
+
+                # Zastąpienie zmiennych w szablonie
+                html_content = html_content.replace("{{ doctor_rows }}", doctors_rows)
+
+                # Wyślij odpowiedź HTML z danymi klientów
+                self.send_response(200)
+                self.send_header("Content-type", "text/html; charset=utf-8")
+                self.end_headers()
+                self.wfile.write(html_content.encode('utf-8'))
+            else:
+                self.send_response(404)
+                self.send_header("Content-type", "text/html; charset=utf-8")
+                self.end_headers()
+                self.wfile.write("<p>Nie znaleziono klientów.</p>".encode('utf-8'))
+
 
 ###################     UAKTUALNIAMY DANE KLIENTA      ##################################
 
@@ -967,6 +1100,45 @@ class MyHandler(SimpleHTTPRequestHandler):
             else:
                 # Jeżeli klient nie został znaleziony, zwróć błąd
                 self.send_error(404, "Nie znaleziono klienta.")
+
+
+
+###################     UAKTUALNIAMY DANE LEKARZA     ##################################
+
+
+        elif self.path.startswith("/update_doctor/"):
+            # Pobieranie danych z formularza
+            content_length = int(self.headers['Content-Length'])
+            post_data = self.rfile.read(content_length)
+            data = parse_qs(post_data.decode('utf-8'))
+
+            # Logowanie danych z formularza
+            print(f"Dane przesłane z formularza: {data}")
+
+            doctor_id = data.get('doctor_id', [''])[0]
+
+            # Szukamy lekarza na podstawie ID
+            doctor = find_doctor_by_id(doctor_id)
+
+            if doctor:
+                # Jeżeli klient został znaleziony, przechodzimy do aktualizacji
+                first_name = data.get('doctor_first_name', [''])[0]
+                last_name = data.get('doctor_last_name', [''])[0]
+                specialization = data.get('doctor_specialization', [''])[0]
+                phone = data.get('doctor_phone', [''])[0]
+
+                # Wywołanie funkcji do aktualizacji danych klienta
+                update_doctor(doctor_id, first_name, last_name, specialization, phone)
+
+                self.send_response(200)
+                self.send_header("Content-type", "text/html; charset=utf-8")
+                self.end_headers()
+                self.wfile.write("<p>Dane lekarza zostały zaktualizowane.</p>".encode('utf-8'))
+            else:
+                # Jeżeli klient nie został znaleziony, zwróć błąd
+                self.send_error(404, "Nie znaleziono lekarza.")
+
+
 
 
 ###################     DODAJEMY NOWEGO KLIENTA I JEGO ZWIERZĘ      ##################################
@@ -1067,7 +1239,7 @@ class MyHandler(SimpleHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(f"<p>Wystąpił błąd: {e}<p>".encode('utf-8'))
 
-
+# #####################         DEF SEARCHING POST      ##########################
 
     def handle_search_client_post(self, data):
         first_name = data.get('client_first_name', '')
@@ -1079,6 +1251,24 @@ class MyHandler(SimpleHTTPRequestHandler):
             self.send_header("Content-type", "text/html; charset=utf-8")
             self.end_headers()
             self.wfile.write("<p>Znaleziono klienta: {first_name} {last_name}</p>".encode('utf-8'))
+        except Exception as e:
+                # Wysłanie odpowiedzi HTTP w przypadku błędu
+            self.send_response(500)
+            self.send_header("Content-type", "text/html; charset=utf-8")
+            self.end_headers()
+            self.wfile.write(f"<p>Wystąpił błąd: {e}</p>".encode('utf-8'))
+
+
+    def handle_search_doctor_post(self, data):
+        first_name = data.get('doctor_first_name', '')
+        last_name = data.get('doctor_last_name', '')
+
+        try:
+            find_doctor(first_name, last_name)
+            self.send_response(200)
+            self.send_header("Content-type", "text/html; charset=utf-8")
+            self.end_headers()
+            self.wfile.write("<p>Znaleziono lekarza: {first_name} {last_name}</p>".encode('utf-8'))
         except Exception as e:
                 # Wysłanie odpowiedzi HTTP w przypadku błędu
             self.send_response(500)
