@@ -4,7 +4,7 @@ import Database.operations_doctors
 print(dir(Database.operations_doctors))
 print(">>> Ładuje się właściwy plik operations_doctors.py")
 
-from Database.operations_doctors import add_doctor, fetch_doctors, find_doctor_by_id, find_doctor, update_doctor
+from Database.operations_doctors import add_doctor, fetch_doctors, find_doctor_by_id, find_doctor, update_doctor, soft_delete_doctor
 from Database.operations_receptionist import add_receptionist
 from Database.operations_pets import add_pet
 from Database.connection import create_connection
@@ -723,6 +723,8 @@ class MyHandler(SimpleHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(f"<p>Błąd: {e}".encode("utf-8"))
 
+# ###################       USUWAMY KLIENTA - SOFT DELETE       ##########################
+
 
         elif self.path.startswith("/delete_client/"):
                 client_id = self.path.split('/')[-1]  # Pobieramy ID klienta z URL
@@ -744,13 +746,34 @@ class MyHandler(SimpleHTTPRequestHandler):
                     self.wfile.write(error_message.encode('utf-8'))
 
 
+# ###################       USUWAMY LEKARZA - SOFT DELETE       ##########################
+
+
+        elif self.path.startswith("/delete_doctor/"):
+                doctor_id = self.path.split('/')[-1]  # Pobieramy ID lekarza z URL
+
+                # Usuwamy lekarza (soft delete) z bazy danych
+                try:
+                    soft_delete_doctor(doctor_id)  # Funkcja, która oznacza lekarza jako usuniętego
+                    # Przekierowanie na stronę z listą lekarzy po usunięciu
+                    self.send_response(303)  # Kod statusu: See Other (przekierowanie)
+                    self.send_header('Location', '/doctors_list/')  # Przekierowanie do listy lekarzy
+                    self.end_headers()
+
+                except Exception as e:
+                    # Obsługa błędów, np. lekarza nie został znaleziony
+                    self.send_response(500)
+                    self.send_header("Content-type", "text/html")
+                    self.end_headers()
+                    error_message = f"Error deleting client: {e}"
+                    self.wfile.write(error_message.encode('utf-8'))
 
         else:
             super().do_GET()
 
+
+
     def do_POST(self):
-
-
 
         if self.path.startswith("/update/"):
             visit_id = self.path.split("/update/")[1]
