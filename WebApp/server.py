@@ -6,8 +6,7 @@ print(">>> Ładuje się właściwy plik operations_doctors.py")
 
 from Database.operations_doctors import add_doctor, fetch_doctors, find_doctor_by_id, find_doctor, update_doctor, soft_delete_doctor
 from Database.operations_receptionist import add_receptionist
-from Database.operations_pets import add_pet
-from Database.connection import create_connection
+from Database.operations_pets import fetch_pets
 from http.server import SimpleHTTPRequestHandler, HTTPServer
 import urllib.parse
 from urllib.parse import parse_qs
@@ -90,7 +89,7 @@ def render_home_page():
                     <a href="/clients_list/" class="btn btn-primary">Klienci</a>
                 </div>
                 <div class="col-md-6 mb-3">
-                    <a href="/pet_list/" class="btn btn-success">Zwierzęta</a>
+                    <a href="/pets_list/" class="btn btn-success">Zwierzęta</a>
                 </div>
             </div>
             <div class="row">
@@ -216,7 +215,6 @@ def render_add_doctor():
         add_doctor_form_html = f.read()
 
     return add_doctor_form_html
-
 
 def render_add_receptionist_form():
     with open("templates/adding_receptionist.html", "r", encoding="utf-8") as f:
@@ -485,6 +483,67 @@ class MyHandler(SimpleHTTPRequestHandler):
 
                 # Zamieniamy placeholder {{ doctors_rows }} w szablonie na wygenerowany HTML z klientami
                 rendered_content = template_content.replace("{{ doctor_rows }}", doctors_html)
+
+                # Wysyłamy odpowiedź HTTP
+                self.send_response(200)
+                self.send_header("Content-type", "text/html")
+                self.end_headers()
+                self.wfile.write(rendered_content.encode('utf-8'))
+
+            except Exception as e:
+                self.send_response(500)
+                self.send_header("Content-type", "text/html")
+                self.end_headers()
+                error_message = f"Error rendering page: {e}"
+                self.wfile.write(error_message.encode('utf-8'))
+
+
+#######################    LISTA ZWIERZĄT  #######################
+
+
+        elif self.path == "/pets_list/":
+            # Pobieramy zwierzęta z bazy danych
+            pets = fetch_pets()
+
+            # Debugowanie: sprawdzamy, co zostało pobrane
+            print(f"Pobrane dane: {pets}")
+
+            # Ścieżka do szablonu HTML
+            template_path = os.path.join(os.getcwd(), 'Templates', 'pets_list.html')
+
+            try:
+                # Odczytujemy zawartość pliku HTML
+                with open(template_path, 'r', encoding='utf-8') as file:
+                    template_content = file.read()
+
+                # Przygotowujemy dane do wstawienia w HTML
+                pets_html = ""
+                for pet in pets:
+                    pet_id = pet[0]  # ID zwierzęcia
+                    deletion_date = pet[5].strftime('%Y-%m-%d %H:%M:%S') if pet[5] else "Zwierzę aktywne"
+
+                    # Tworzymy wiersz tabeli, uwzględniając datę usunięcia
+                    pet_row = f"""
+                    <tr>
+                        <td>{pet[0]}</td>
+                        <td>{pet[1]}</td>
+                        <td>{pet[2]}</td>
+                        <td>{pet[3]}</td>
+                        <td>{pet[4]}</td>
+                        <td>{deletion_date}</td>  <!-- Dodajemy datę usunięcia -->
+                        <td>{pet[6]}</td>
+                        <td>
+                            <div class="btn-group">
+                                <a href="/update_pet/{pet_id}" class="btn btn-edit">Edytuj</a>
+                                <a href="/delete_pet/{pet_id}" class="btn btn-danger">Usuń</a>
+                            </div>
+                        </td>
+                    </tr>
+                    """
+                    pets_html += pet_row  # Dodajemy wiersz dla każdego zwierzęcia
+
+                # Zamieniamy placeholder {{ pet_row }} w szablonie na wygenerowany HTML ze ziwerzętami
+                rendered_content = template_content.replace("{{ pets_rows }}", pets_html)
 
                 # Wysyłamy odpowiedź HTTP
                 self.send_response(200)

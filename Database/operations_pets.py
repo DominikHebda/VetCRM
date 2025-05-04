@@ -2,14 +2,22 @@ from Database.connection import create_connection
 from datetime import datetime
 
 def fetch_pets():
+    """Pobiera wszystkie zwierzęta z tabeli 'pets'"""
+    pets = []
     try:
         connection = create_connection()
+        print("Połączenie z bazą danych nawiązane.")  # Debugowanie
         if connection:
             cursor = connection.cursor()
-            cursor.execute("SELECT * FROM pets")
-            results = cursor.fetchall()
+            cursor.execute("SELECT id, pet_name, species, breed, age, soft_delete, client_id FROM pets")
+            results = cursor.fetchall()  # Pobiera wszystkie wyniki
+
+            print("Dane pobrane z bazy:")  # Debugowanie
             for row in results:
-                print(row)
+                print(row)  # Debugowanie
+                # Zapisujemy dane zwierzęcia w formie krotki (id, nazwa, gatunek, rasa, wiek, data usunięcia, id klienta)
+                pets.append(row)
+            
             cursor.close()
             connection.close()
     except Exception as e:
@@ -18,6 +26,8 @@ def fetch_pets():
         if connection.is_connected():
             cursor.close()
             connection.close()
+
+    return pets  # Zwraca listę zwierząt
 # fetch_pets()
 
 def add_pet(pet_name, species, breed, age, client_id):

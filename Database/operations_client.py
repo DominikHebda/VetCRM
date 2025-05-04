@@ -1,5 +1,4 @@
 from Database.connection import create_connection
-from Database.operations_pets import add_pet
 from datetime import datetime
 import traceback
 import urllib.parse
