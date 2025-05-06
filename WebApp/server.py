@@ -502,50 +502,40 @@ class MyHandler(SimpleHTTPRequestHandler):
 
 
         elif self.path == "/pets_list/":
-            # Pobieramy zwierzęta z bazy danych
             pets = fetch_pets()
-
-            # Debugowanie: sprawdzamy, co zostało pobrane
             print(f"Pobrane dane: {pets}")
-
-            # Ścieżka do szablonu HTML
             template_path = os.path.join(os.getcwd(), 'Templates', 'pets_list.html')
 
             try:
-                # Odczytujemy zawartość pliku HTML
                 with open(template_path, 'r', encoding='utf-8') as file:
                     template_content = file.read()
 
-                # Przygotowujemy dane do wstawienia w HTML
                 pets_html = ""
                 for pet in pets:
-                    pet_id = pet[0]  # ID zwierzęcia
+                    pet_id = pet[0]
                     deletion_date = pet[5].strftime('%Y-%m-%d %H:%M:%S') if pet[5] else "Zwierzę aktywne"
+                    owner_name = f"{pet[6]} {pet[7]}" if pet[6] and pet[7] else "Brak danych"
 
-                    # Tworzymy wiersz tabeli, uwzględniając datę usunięcia
                     pet_row = f"""
-                    <tr>
-                        <td>{pet[0]}</td>
-                        <td>{pet[1]}</td>
-                        <td>{pet[2]}</td>
-                        <td>{pet[3]}</td>
-                        <td>{pet[4]}</td>
-                        <td>{deletion_date}</td>  <!-- Dodajemy datę usunięcia -->
-                        <td>{pet[6]}</td>
-                        <td>
-                            <div class="btn-group">
-                                <a href="/update_pet/{pet_id}" class="btn btn-edit">Edytuj</a>
-                                <a href="/delete_pet/{pet_id}" class="btn btn-danger">Usuń</a>
-                            </div>
-                        </td>
-                    </tr>
+                        <tr>
+                            <td>{pet[0]}</td>
+                            <td>{pet[1]}</td>
+                            <td>{pet[2]}</td>
+                            <td>{pet[3]}</td>
+                            <td>{pet[4]}</td>
+                            <td>{deletion_date}</td>
+                            <td>{owner_name}</td>
+                            <td>
+                                <div class="btn-group">
+                                    <a href="/update_pet/{pet_id}" class="btn btn-edit">Edytuj</a>
+                                    <a href="/delete_pet/{pet_id}" class="btn btn-danger">Usuń</a>
+                                </div>
+                            </td>
+                        </tr>
                     """
-                    pets_html += pet_row  # Dodajemy wiersz dla każdego zwierzęcia
+                    pets_html += pet_row
 
-                # Zamieniamy placeholder {{ pet_row }} w szablonie na wygenerowany HTML ze ziwerzętami
                 rendered_content = template_content.replace("{{ pets_rows }}", pets_html)
-
-                # Wysyłamy odpowiedź HTTP
                 self.send_response(200)
                 self.send_header("Content-type", "text/html")
                 self.end_headers()
@@ -557,6 +547,7 @@ class MyHandler(SimpleHTTPRequestHandler):
                 self.end_headers()
                 error_message = f"Error rendering page: {e}"
                 self.wfile.write(error_message.encode('utf-8'))
+
 
 
 ########################    DODAWANIE KLIENTA  ################
