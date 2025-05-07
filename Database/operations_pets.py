@@ -76,20 +76,26 @@ def fetch_clients_to_indications():
             conn.close()
 
 
-def find_pet():
+def find_pet(pet_name, species):
+    connection = None
     try:
-        pet_name = input("Podaj nazwę zwierzęcia: ").strip()
-        species = input("Podaj gatunek zwierzęcia: ").strip()
-
         connection = create_connection()
         cursor = connection.cursor()
-        cursor.execute("SELECT * FROM pets WHERE pet_name = %s AND species = %s", (pet_name, species))
+
+        cursor.execute("""
+            SELECT p.id, p.pet_name, p.species, p.breed, p.age, p.soft_delete,
+                   c.first_name, c.last_name, c.id
+            FROM pets p
+            JOIN clients c ON p.client_id = c.id
+            WHERE p.pet_name = %s AND p.species = %s
+        """, (pet_name, species))
+
         results = cursor.fetchall()
 
         if results:
             print(f"Znaleziono {len(results)} zwierząt:")
             for row in results:
-                print(f"ID: {row[0]}, Nazwa zwierzęcia: {row[1]}, Gatunek: {row[2]} Rasa: {row[3]}")
+                print(f"ID: {row[0]}, Nazwa: {row[1]}, Gatunek: {row[2]}, Rasa: {row[3]}")
             return results
         else:
             print("Nie znaleziono zwierząt o podanych danych.")
@@ -97,9 +103,10 @@ def find_pet():
     except Exception as e:
         print(f"Błąd podczas pobierania danych: {e}")
     finally:
-        if connection.is_connected():
+        if connection and connection.is_connected():
             cursor.close()
             connection.close()
+
 
 # find_pet()
 

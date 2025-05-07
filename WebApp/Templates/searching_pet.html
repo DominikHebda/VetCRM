@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wyszukaj zwierzę</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-4">
+        <h1>Podaj dane zwierzęcia którego chcesz edytować</h1>
+        <form method="POST" action="/searching_pet/">
+            <div class="form-group">
+                <label for="pet_name">Podaj nazwę zwierzęcia:</label>
+                <input type="text" id="pet_name" name="pet_name" class="form-control" required />
+            </div>
+
+            <div class="form-group">
+                <label for="species">Podaj gatunek:</label>
+                <input type="text" id="species" name="species" class="form-control" required />
+            </div>
+
+            <button type="submit" class="btn btn-primary">Wyszukaj</button>
+        </form>
+    </div>
+</body>
+</html>

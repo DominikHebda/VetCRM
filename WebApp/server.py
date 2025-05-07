@@ -6,7 +6,7 @@ print(">>> Ładuje się właściwy plik operations_doctors.py")
 
 from Database.operations_doctors import add_doctor, fetch_doctors, find_doctor_by_id, find_doctor, update_doctor, soft_delete_doctor
 from Database.operations_receptionist import add_receptionist
-from Database.operations_pets import fetch_pets, add_pet, fetch_clients_to_indications
+from Database.operations_pets import fetch_pets, add_pet, fetch_clients_to_indications, find_pet
 from http.server import SimpleHTTPRequestHandler, HTTPServer
 import urllib.parse
 from urllib.parse import parse_qs
@@ -267,6 +267,12 @@ def render_search_doctor():
         search_doctor_html = f.read()
 
     return search_doctor_html
+
+def render_search_pet():
+    with open("templates/searching_pet.html", "r", encoding="utf-8") as f:
+        search_pet_html = f.read()
+
+    return search_pet_html
 
 def render_update_client():
     with open("templates/update_client", "r", encoding="utf-8") as f:
@@ -617,11 +623,21 @@ class MyHandler(SimpleHTTPRequestHandler):
 ########################    WYSZUKIWANIE LEKARZA ################
 
         elif self.path == "/searching_doctor/":
-            search_client_html = render_search_doctor()  
+            search_doctor_html = render_search_doctor()  
             self.send_response(200)
             self.send_header("Content-type", "text/html; charset=utf-8")
             self.end_headers()
-            self.wfile.write(search_client_html.encode('utf-8'))
+            self.wfile.write(search_doctor_html.encode('utf-8'))
+
+
+########################    WYSZUKIWANIE ZWIERZĘCIA ################
+
+        elif self.path == "/searching_pet/":
+            search_pet_html = render_search_pet()  
+            self.send_response(200)
+            self.send_header("Content-type", "text/html; charset=utf-8")
+            self.end_headers()
+            self.wfile.write(search_pet_html.encode('utf-8'))
 
 
 
@@ -1187,6 +1203,70 @@ class MyHandler(SimpleHTTPRequestHandler):
                 self.wfile.write("<p>Nie znaleziono klientów.</p>".encode('utf-8'))
 
 
+
+###################     WYSZUKUJEMY ZWIERZĘ    ##################################
+
+        elif self.path == "/searching_pet/":
+            content_length = int(self.headers.get('Content-Length'))
+            post_data = self.rfile.read(content_length)
+            data = {item.split('=')[0]: urllib.parse.unquote_plus(item.split('=')[1]) for item in post_data.decode('utf-8').split('&')}
+
+            # Pobierz dane z formularza
+            pet_name = data.get('pet_name', '')
+            species = data.get('species', '')
+
+            # Upewnij się, że wartości zostały przypisane
+            if not pet_name or not species:
+                self.send_error(400, "Brak wymaganych danych (pet_name, species).")
+                return
+
+            pets = find_pet(pet_name, species)
+
+            if pets:
+                # Jeśli znaleziono zwierzęta, wyświetlamy tabelę
+                # Wczytaj widok HTML
+                with open("templates/output_searching_pet.html", "r", encoding="utf-8") as file:
+                    html_content = file.read()
+
+                # Generowanie wierszy dla każdego zwierzęcia
+                pets_rows = ""
+                for pet in pets:
+                    deletion_date = pet[5].strftime('%Y-%m-%d %H:%M:%S') if pet[5] else "Zwierzę aktywne"
+                    pet_row = f"""
+                        <tr>
+                            <td>{pet[0]}</td>
+                            <td>{pet[1]}</td>
+                            <td>{pet[2]}</td>
+                            <td>{pet[3]}</td>
+                            <td>{pet[4]}</td>
+                            <td>{deletion_date}</td>
+                            <td>{pet[6]} {pet[7]}</td>
+                            <td>
+                                <div class="btn-group">
+                                    <a href="/update_pet/{pet[0]}" class="btn btn-edit">Edytuj</a>
+                                    <a href="/delete_pet/{pet[0]}" class="btn btn-danger">Usuń</a>
+                                </div>
+                            </td>
+                        </tr>
+                    """
+
+                    pets_rows += pet_row
+
+                # Zastąpienie zmiennych w szablonie
+                html_content = html_content.replace("{{ pet_rows }}", pets_rows)
+
+                # Wyślij odpowiedź HTML z danymi zwierząt
+                self.send_response(200)
+                self.send_header("Content-type", "text/html; charset=utf-8")
+                self.end_headers()
+                self.wfile.write(html_content.encode('utf-8'))
+            else:
+                self.send_response(404)
+                self.send_header("Content-type", "text/html; charset=utf-8")
+                self.end_headers()
+                self.wfile.write("<p>Nie znaleziono klientów.</p>".encode('utf-8'))                
+
+
 ###################     UAKTUALNIAMY DANE KLIENTA      ##################################
 
 
@@ -1418,6 +1498,27 @@ class MyHandler(SimpleHTTPRequestHandler):
             self.send_header("Content-type", "text/html; charset=utf-8")
             self.end_headers()
             self.wfile.write(f"<p>Wystąpił błąd: {e}</p>".encode('utf-8'))
+
+
+    def handle_search_pet_post(self, data):
+        pet_name = data.get('pet_name', '')
+        species = data.get('species', '')
+
+        try:
+            find_pet(pet_name, species)
+            self.send_response(200)
+            self.send_header("Content-type", "text/html; charset=utf-8")
+            self.end_headers()
+            self.wfile.write("<p>Znaleziono zwierzę: {pet_name} {species}</p>".encode('utf-8'))
+        except Exception as e:
+                # Wysłanie odpowiedzi HTTP w przypadku błędu
+            self.send_response(500)
+            self.send_header("Content-type", "text/html; charset=utf-8")
+            self.end_headers()
+            self.wfile.write(f"<p>Wystąpił błąd: {e}</p>".encode('utf-8'))
+
+
+
 
     # # Przenosimy metodę handle_add_doctor_post na poziom klasy
     # def handle_add_doctor_post(self, data):
