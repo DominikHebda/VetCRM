@@ -61,6 +61,21 @@ def add_pet_data():
 
 # add_pet_data()
 
+def fetch_clients_to_indications():
+    try:
+        conn = create_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, first_name, last_name FROM clients")
+        return cursor.fetchall()
+    except Exception as e:
+        print(f"Błąd przy pobieraniu klientów: {e}")
+        return []
+    finally:
+        if conn.is_connected():
+            cursor.close()
+            conn.close()
+
+
 def find_pet():
     try:
         pet_name = input("Podaj nazwę zwierzęcia: ").strip()

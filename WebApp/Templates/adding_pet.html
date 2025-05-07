@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dodaj zwierzę</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-4">
+        <h1>Dodaj zwierzę</h1>
+        <form method="POST" action="/adding_pet/">
+            <div class="form-group">
+                <label for="pet_name">Nazwa zwierzęcia:</label>
+                <input type="text" id="pet_name" name="pet_name" class="form-control" required />
+            </div>
+
+            <div class="form-group">
+                <label for="species">Gatunek:</label>
+                <input type="text" id="species" name="species" class="form-control" required />
+            </div>
+
+            <div class="form-group">
+                <label for="breed">Rasa:</label>
+                <input type="text" id="breed" name="breed" class="form-control" required />
+            </div>
+
+            <div class="form-group">
+                <label for="age">Podaj wiek zwierzęcia:</label>
+                <input type="text" id="age" name="age" class="form-control" required />
+            </div>
+
+            <div class="form-group">
+                <label for="client_id">Wybierz właściciela zwierzęcia:</label>
+                <select id="client_id" name="client_id" class="form-control" required>
+                    {{ client_options }}
+                </select>
+            </div>
+
+            <button type="submit" class="btn btn-success">Zapisz zwierzę</button>
+        </form>
+
+        <p class="mt-4"><a href="/" class="btn btn-primary">Powrót do strony głównej</a></p>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>

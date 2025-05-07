@@ -6,7 +6,7 @@ print(">>> Ładuje się właściwy plik operations_doctors.py")
 
 from Database.operations_doctors import add_doctor, fetch_doctors, find_doctor_by_id, find_doctor, update_doctor, soft_delete_doctor
 from Database.operations_receptionist import add_receptionist
-from Database.operations_pets import fetch_pets
+from Database.operations_pets import fetch_pets, add_pet, fetch_clients_to_indications
 from http.server import SimpleHTTPRequestHandler, HTTPServer
 import urllib.parse
 from urllib.parse import parse_qs
@@ -239,6 +239,22 @@ def render_add_client():
         add_client_html = f.read()
 
     return add_client_html
+
+def render_add_pet():
+    # Pobierz klientów
+    clients = fetch_clients_to_indications()
+    client_options = ""
+    for client_id, first_name, last_name in clients:
+        client_options += f'<option value="{client_id}">{first_name} {last_name}</option>'
+
+    # Wczytaj HTML szablon
+    template_path = os.path.join(os.getcwd(), 'Templates', 'adding_pet.html')
+    with open(template_path, 'r', encoding='utf-8') as file:
+        html = file.read()
+
+    # Podmień placeholder
+    html = html.replace("{{ client_options }}", client_options)
+    return html
 
 def render_search_client():
     with open("templates/searching_client.html", "r", encoding="utf-8") as f:
@@ -575,6 +591,18 @@ class MyHandler(SimpleHTTPRequestHandler):
 
 
 
+########################    DODAWANIE ZWIERZĘCIA  ################
+    
+
+        elif self.path == "/adding_pet/":
+            print(f"Handling GET request for {self.path}") 
+            add_pet_html = render_add_pet()  
+            self.send_response(200)
+            self.send_header("Content-type", "text/html; charset=utf-8")
+            self.end_headers()
+            self.wfile.write(add_pet_html.encode('utf-8'))
+
+
 ########################    WYSZUKIWANIE KLIENTA  ################
 
         elif self.path == "/searching_client/":
@@ -706,6 +734,7 @@ class MyHandler(SimpleHTTPRequestHandler):
                 self.send_header("Content-type", "text/html; charset=utf-8")
                 self.end_headers()
                 self.wfile.write("<p>Niepoprawne ID wizyty.</p>".encode('utf-8'))
+                
 
 ########################    WYŚWIETLANIE LISTY WIZYT  ################
 
@@ -1017,6 +1046,26 @@ class MyHandler(SimpleHTTPRequestHandler):
             self.handle_add_doctor_post(data)
 
 
+
+###############         DODAJEMY NOWE ZWIERZĘ         ###########################
+
+
+        elif self.path == "/adding_pet/":
+            content_length = int(self.headers['Content-Length'])
+            post_data = self.rfile.read(content_length)
+            post_data = post_data.decode('utf-8')
+
+            print("RAW post_data:")
+            print(post_data)
+
+            data = {item.split('=')[0]: urllib.parse.unquote_plus(item.split('=')[1]) for item in post_data.split('&')}
+            
+            print("Parsed data:")
+            print(data)
+
+            print(post_data)  # Sprawdzić, co jest przesyłane
+            self.handle_add_pet_post(data)
+
 ###################     WYSZUKUJEMY KLIENTA      ##################################
 
         elif self.path == "/searching_client/":
@@ -1311,6 +1360,27 @@ class MyHandler(SimpleHTTPRequestHandler):
             self.send_header("Content-type", "text/html; charset=utf-8")
             self.end_headers()
             self.wfile.write(f"<p>Wystąpił błąd: {e}<p>".encode('utf-8'))
+
+
+    def handle_add_pet_post(self, data):
+        pet_name = data.get('pet_name', '')
+        species = data.get('species', '')
+        breed = data.get('breed', '')
+        age = data.get('age', '')
+        client_id = data.get('client_id', '')
+        try:
+            add_pet(pet_name, species, breed, age, client_id)
+            self.send_response(200)
+            self.send_header("Content-type", "text/html; charset=utf-8")
+            self.end_headers()
+            self.wfile.write("<p>Zwierzę zostało dodane do bazy danych!<p>".encode('utf-8'))
+        except Exception as e:
+            self.send_response(500)
+            self.send_header("Content-type", "text/html; charset=utf-8")
+            self.end_headers()
+            self.wfile.write(f"<p>Wystąpił błąd: {e}<p>".encode('utf-8'))
+
+
 
 # #####################         DEF SEARCHING POST      ##########################
 
