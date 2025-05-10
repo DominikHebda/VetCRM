@@ -6,7 +6,7 @@ print(">>> Ładuje się właściwy plik operations_doctors.py")
 
 from Database.operations_doctors import add_doctor, fetch_doctors, find_doctor_by_id, find_doctor, update_doctor, soft_delete_doctor
 from Database.operations_receptionist import add_receptionist
-from Database.operations_pets import fetch_pets, add_pet, fetch_clients_to_indications, find_pet
+from Database.operations_pets import fetch_pets, add_pet, fetch_clients_to_indications, find_pet, find_pet_by_id, update_pet
 from http.server import SimpleHTTPRequestHandler, HTTPServer
 import urllib.parse
 from urllib.parse import parse_qs
@@ -210,11 +210,6 @@ def render_visit_details(visit_id):
 
     return visit_details_html
 
-def render_add_doctor():
-    with open("templates/adding_doctors.html", "r", encoding="utf-8") as f:
-        add_doctor_form_html = f.read()
-
-    return add_doctor_form_html
 
 def render_add_receptionist_form():
     with open("templates/adding_receptionist.html", "r", encoding="utf-8") as f:
@@ -239,6 +234,12 @@ def render_add_client():
         add_client_html = f.read()
 
     return add_client_html
+
+def render_add_doctor():
+    with open("templates/adding_doctors.html", "r", encoding="utf-8") as f:
+        add_doctor_form_html = f.read()
+
+    return add_doctor_form_html
 
 def render_add_pet():
     # Pobierz klientów
@@ -285,6 +286,28 @@ def render_update_doctor():
         update_doctor_html = f.read()
     
     return update_doctor_html
+
+def render_update_pet(pet_data):
+    clients = fetch_clients_to_indications()
+    client_options = ""
+    for client_id, first_name, last_name in clients:
+        selected = "selected" if client_id == pet_data["client_id"] else ""
+        client_options += f'<option value="{client_id}" {selected}>{first_name} {last_name}</option>'
+
+    # Wczytaj HTML szablon
+    template_path = os.path.join(os.getcwd(), 'Templates', 'update_pet.html')
+    with open(template_path, 'r', encoding='utf-8') as file:
+        html = file.read()
+
+    # Podmień placeholdery danych zwierzęcia
+    for key, value in pet_data.items():
+        html = html.replace(f"{{{{ {key} }}}}", str(value))
+
+    # Podmień listę właścicieli
+    html = html.replace("{{ client_options }}", client_options)
+
+    return html
+
 
 ###################     DODAJEMY NOWEGO KLIENTA I JEGO ZWIERZĘ      ##################################
 
@@ -732,7 +755,56 @@ class MyHandler(SimpleHTTPRequestHandler):
                     else:
                         self.send_error(404, "Doctor nie znaleziony")
 
-            
+
+########################    UAKTUALNIAMY DANE ZWIERZĘCIA     ################
+
+
+        elif self.path.startswith("/update_pet/"):
+                    # Zakładając, że pet_id jest częścią ścieżki URL
+                    pet_id = self.path.split("/")[2]  # Wyciągamy pet_id z URL
+
+                    # Sprawdzamy, czy zwierzę istnieje na podstawie ID
+                    pet = find_pet_by_id(pet_id)  # Wywołujemy find_pet_by_id, która oczekuje pet_id
+
+                    if pet:
+                        # Przygotowujemy dane zwierzęcia do przekazania do szablonu
+                        pet_data = {
+                            "pet_id": pet[0],
+                            "pet_name": pet[1],
+                            "species": pet[2],
+                            "breed": pet[3],
+                            "age": pet[4],
+                            "client_id": pet[6]
+                        }
+
+                        # Wczytanie szablonu HTML
+                        try:
+                            template_path = os.path.join(os.path.dirname(__file__), 'Templates', 'update_pet.html')
+                            print(f"Template path: {template_path}")  # Dodajemy logowanie ścieżki
+
+                            if os.path.exists(template_path):
+                                with open(template_path, "r", encoding="utf-8") as f:
+                                    template = f.read()
+                                
+                                # Zastępujemy zmienne w szablonie
+                                for key, value in pet_data.items():
+                                    template = template.replace(f"{{{{ {key} }}}}", str(value))
+
+                                html = render_update_pet(pet_data)
+
+                                self.send_response(200)
+                                self.send_header("Content-type", "text/html; charset=utf-8")
+                                self.end_headers()
+                                self.wfile.write(html.encode("utf-8"))
+
+                            else:
+                                self.send_error(404, "Plik szablonu nie znaleziony")
+                        except FileNotFoundError:
+                            self.send_error(404, "Plik szablonu nie znaleziony")
+                    else:
+                        self.send_error(404, "Zwierzę nie znaleziony")            
+
+
 
         elif self.path.startswith("/visit/"):
             visit_id = self.path.split("/visit/")[1]
@@ -1341,6 +1413,41 @@ class MyHandler(SimpleHTTPRequestHandler):
                 self.send_error(404, "Nie znaleziono lekarza.")
 
 
+###################     UAKTUALNIAMY DANE ZWIERZĘCIA     ##################################
+
+
+        elif self.path.startswith("/update_pet/"):
+            # Pobieranie danych z formularza
+            content_length = int(self.headers['Content-Length'])
+            post_data = self.rfile.read(content_length)
+            data = parse_qs(post_data.decode('utf-8'))
+
+            # Logowanie danych z formularza
+            print(f"Dane przesłane z formularza: {data}")
+
+            pet_id = data.get('pet_id', [''])[0]
+
+            # Szukamy zwierzęcia na podstawie ID
+            pet = find_pet_by_id(pet_id)
+
+            if pet:
+                # Jeżeli zwierzę zostało znalezione, przechodzimy do aktualizacji
+                pet_name = data.get('pet_name', [''])[0]
+                species = data.get('species', [''])[0]
+                breed = data.get('breed', [''])[0]
+                age = data.get('age', [''])[0]
+                client_id = data.get('client_id', [''])[0]
+
+                # Wywołanie funkcji do aktualizacji danych zwierzecia
+                update_pet(pet_id, pet_name, species, breed, age, client_id)
+
+                self.send_response(200)
+                self.send_header("Content-type", "text/html; charset=utf-8")
+                self.end_headers()
+                self.wfile.write("<p>Dane zwierzecia zostały zaktualizowane.</p>".encode('utf-8'))
+            else:
+                # Jeżeli zwierzę nie zostało znalezione, zwróć błąd
+                self.send_error(404, "Nie znaleziono zwierzęcia.")
 
 
 ###################     DODAJEMY NOWEGO KLIENTA I JEGO ZWIERZĘ      ##################################

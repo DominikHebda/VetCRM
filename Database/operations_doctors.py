@@ -103,7 +103,7 @@ def find_doctor_by_id(doctor_id):
         
         # Jeśli lekarz istnieje, zwróć dane
         if doctor:
-            return doctor  # Zwracamy krotkę (idDoctor, first_name, last_name, phone, address)
+            return doctor  # Zwracamy krotkę (idDoctor, first_name, last_name, specialization, phone)
         else:
             return None  # Jeśli lekarz nie został znaleziony
 
