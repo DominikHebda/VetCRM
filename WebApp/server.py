@@ -6,7 +6,7 @@ print(">>> Ładuje się właściwy plik operations_doctors.py")
 
 from Database.operations_doctors import add_doctor, fetch_doctors, find_doctor_by_id, find_doctor, update_doctor, soft_delete_doctor
 from Database.operations_receptionist import add_receptionist
-from Database.operations_pets import fetch_pets, add_pet, fetch_clients_to_indications, find_pet, find_pet_by_id, update_pet
+from Database.operations_pets import fetch_pets, add_pet, fetch_clients_to_indications, find_pet, find_pet_by_id, update_pet, soft_delete_pet
 from http.server import SimpleHTTPRequestHandler, HTTPServer
 import urllib.parse
 from urllib.parse import parse_qs
@@ -933,6 +933,30 @@ class MyHandler(SimpleHTTPRequestHandler):
                     self.send_header("Content-type", "text/html")
                     self.end_headers()
                     error_message = f"Error deleting client: {e}"
+                    self.wfile.write(error_message.encode('utf-8'))
+
+
+
+# ###################       USUWAMY ZWIERZĘ - SOFT DELETE       ##########################
+
+
+        elif self.path.startswith("/delete_pet/"):
+                pet_id = self.path.split('/')[-1]  # Pobieramy ID zwierzęcia z URL
+
+                # Usuwamy zwierzę (soft delete) z bazy danych
+                try:
+                    soft_delete_pet(pet_id)  # Funkcja, która oznacza zwierzę jako usunięte
+                    # Przekierowanie na stronę z listą zwierząt po usunięciu
+                    self.send_response(303)  # Kod statusu: See Other (przekierowanie)
+                    self.send_header('Location', '/pets_list/')  # Przekierowanie do listy zwierząt
+                    self.end_headers()
+
+                except Exception as e:
+                    # Obsługa błędów, np. zwierzę nie zostało znalezione
+                    self.send_response(500)
+                    self.send_header("Content-type", "text/html")
+                    self.end_headers()
+                    error_message = f"Error deleting pet: {e}"
                     self.wfile.write(error_message.encode('utf-8'))
 
         else:

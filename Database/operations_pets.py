@@ -223,46 +223,35 @@ def update_pet(pet_id, pet_name, species, breed, age, client_id):
 
 # update_pet()
 
-def soft_delete_pet():
-    pets = find_pet()
-    if not pets:
-        return
-    
+def soft_delete_pet(pet_id):
+    """Oznacza zwierzę jako usunięte w bazie danych (soft delete)"""
     try:
-        pet_id = int(input("Podaj ID zwierzęcia, którego dane chcesz usunąć (soft delete): "))
-        selected_pet = None
-        for pet in pets:
-            if pet[0] == pet_id:
-                selected_pet = pet
-                break
-        if not selected_pet:
-            print(f"Nie znalesiono zwierzęcia o ID {pet_id}.")
-            return
-        print(f"Wybrano zwierzę: {selected_pet[1]} {selected_pet[2]} (ID: {selected_pet[0]})")
-        current_time = datetime.now()
+        # Tworzymy połączenie z bazą danych
         connection = create_connection()
-        cursor = connection.cursor()
+        if connection:
+            cursor = connection.cursor()
 
-        query = """
-        UPDATE pets
-        SET soft_delete = %s
-        WHERE idpet = %s AND soft_delete IS NULL
-        """
+            # Pobieramy bieżącą datę i godzinę
+            current_time = datetime.now()
 
-        cursor.execute(query, (current_time, pet_id))
-        connection.commit()
+            # Zapytanie SQL do oznaczenia zwierzęcia jako usuniętego
+            query = """
+            UPDATE pets
+            SET soft_delete = %s
+            WHERE id = %s AND soft_delete IS NULL
+            """
+            cursor.execute(query, (current_time, pet_id))
 
-        if cursor.rowcount > 0:
-            print(f"Zwierzę o ID {pet_id} zostało oznaczone jako usunięte.")
-        else:
-            print(f"Nie udało się oznaczyć zwierzęcia o ID {pet_id} jako usuniętego.")
+            connection.commit()  # Zatwierdzamy zmiany w bazie danych
 
-        cursor.close()
-        connection.close()
+            # Sprawdzamy, czy zapytanie zaktualizowało jakikolwiek rekord
+            if cursor.rowcount > 0:
+                print(f"Zwierzę o ID {pet_id} został oznaczony jako usunięty.")
+            else:
+                print(f"Nie udało się oznaczyć lekarza o ID {pet_id} jako usuniętego.")
+            
+            cursor.close()
+            connection.close()
 
-    except ValueError:
-        print("Błąd: Podano nieprawidłowe ID zwierzęcia.")
     except Exception as e:
-        print(f"Błąd podczas oznaczania klienta jako usuniętego: {e}")
-
-# soft_delete_pet()
+        print(f"Błąd podczas oznaczania lekarza jako usuniętego: {e}")
