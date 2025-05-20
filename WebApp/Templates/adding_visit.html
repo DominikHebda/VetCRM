@@ -9,55 +9,33 @@
 <body>
     <div class="container mt-4">
         <h1>Dodaj wizytę</h1>
-        <form method="POST" action="/add_next_visit/" enctype="application/x-www-form-urlencoded; charset=UTF-8">
+        <form method="POST" action="/adding_visit/" enctype="application/x-www-form-urlencoded; charset=UTF-8">
+
             <div class="form-group">
-                <label for="client_first_name">Imię klienta:</label>
-                <input type="text" id="client_first_name" name="client_first_name" class="form-control" required />
+                <label for="client_id">Wybierz klienta:</label>
+                    <select id="client_id" name="client_id" class="form-control" onchange="window.location.href='/adding_visit/?client_id=' + this.value" required>
+                    <option value="">Wybierz klienta</option>
+                    {{ client_options }}
+                </select>
             </div>
 
             <div class="form-group">
-                <label for="client_last_name">Nazwisko klienta:</label>
-                <input type="text" id="client_last_name" name="client_last_name" class="form-control" required />
+                <label for="pet_id">Wybierz zwierzę:</label>
+                <select id="pet_id" name="pet_id" class="form-control" required>
+                    {{ pet_options }}
+                </select>
             </div>
 
             <div class="form-group">
-                <label for="client_phone">Podaj telefon:</label>
-                <input type="text" id="client_phone" name="client_phone" class="form-control" required />
+                <label for="doctor_id">Wybierz lekarza:</label>
+                <select id="doctor_id" name="doctor_id" class="form-control" required>
+                    {{ doctor_options }}
+                </select>
             </div>
 
             <div class="form-group">
-                <label for="client_address">Podaj adres:</label>
-                <input type="text" id="client_address" name="client_address" class="form-control" required />
-            </div>
-
-            <div class="form-group">
-                <label for="pet_name">Podaj nazwę zwierzęcia:</label>
-                <input type="text" id="pet_name" name="pet_name" class="form-control" required />
-            </div>
-
-            <div class="form-group">
-                <label for="species">Podaj gatunek zwierzęcia:</label>
-                <input type="text" id="species" name="species" class="form-control" required />
-            </div>
-
-            <div class="form-group">
-                <label for="breed">Podaj rasę zwierzęcia:</label>
-                <input type="text" id="breed" name="breed" class="form-control" required />
-            </div>
-
-            <div class="form-group">
-                <label for="age">Podaj wiek zwierzęcia:</label>
-                <input type="text" id="age" name="age" class="form-control" required />
-            </div>
-
-            <div class="form-group">
-                <label for="doctor_name">Podaj nazwisko lekarza:</label>
-                <input type="text" id="doctor_name" name="doctor_name" class="form-control" required />
-            </div>
-
-            <div class="form-group">
-                <label for="date_of_visit">Podaj datę wizyty:</label>
-                <input type="date" id="date_of_visit" name="date_of_visit" class="form-control" required />
+                <label for="visit_date">Podaj datę wizyty:</label>
+                <input type="date" id="visit_date" name="visit_date" class="form-control" required />
             </div>
 
             <div class="form-group">
@@ -76,4 +54,3 @@
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 </body>
 </html>
-

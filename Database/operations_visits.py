@@ -15,27 +15,66 @@ logging.basicConfig(level=logging.DEBUG)
 def get_current_time():
     return datetime.now()
 
+def format_visit_time(visit_time):
+    # Zakładam, że visit_time to obiekt datetime.timedelta
+    hours = visit_time.seconds // 3600  # Pobieramy godziny
+    minutes = (visit_time.seconds % 3600) // 60  # Pobieramy minuty
+    return f"{hours:02}:{minutes:02}"  # Formatujemy jako HH:MM
 
-def fetch_scheduled_visits():
+
+def fetch_visits():
+    """Pobiera wszystkie wizyty z tabeli 'appointments'"""
+    visits = []
     try:
         connection = create_connection()
-        if connection and connection.is_connected():
+        print("Połączenie z bazą danych nawiązane.")  # Debugowanie
+        if connection:
             cursor = connection.cursor()
-            cursor.execute("SELECT * FROM appointments_made")
-            results = cursor.fetchall()
+            cursor.execute('''SELECT appointments.id, appointments.created_at, appointments.client_id, appointments.pet_id, appointments.doctor_id,
+                          appointments.visit_date, appointments.visit_time, appointments.diagnosis, appointments.soft_delete,
+                          clients.first_name AS client_first_name, clients.last_name AS client_last_name,
+                          pets.pet_name AS pet_name, doctors.first_name AS doctor_first_name, doctors.last_name AS doctor_last_name
+                   FROM appointments
+                   JOIN clients ON appointments.client_id = clients.id
+                   JOIN pets ON appointments.pet_id = pets.id
+                   JOIN doctors ON appointments.doctor_id = doctors.id
+                   ORDER BY appointments.visit_date DESC;''')
+
+            results = cursor.fetchall()  # Pobiera wszystkie wyniki
+
+            print("Dane pobrane z bazy:")  # Debugowanie
             for row in results:
-                print(row)
+                # Zastosowanie funkcji do przekształcenia timedelty na godziny i minuty
+                visit_time_str = format_visit_time(row[6])  # row[6] to prawdopodobnie `visit_time`
+
+                print(f"Data wizyty: {row[5]}, Czas wizyty: {visit_time_str}, Diagnoza: {row[7]}")  # Debugowanie
+
+                # Zapisujemy dane wizyty w formie krotki (id, created_at, ...)
+                visits.append({
+                    'id': row[0],
+                    'created_at': row[1],
+                    'visit_date': row[5],
+                    'visit_time': visit_time_str,
+                    'diagnosis': row[7] if row[7] else "Brak diagnozy",
+                    'soft_delete': row[8],
+                    'client_full_name': f"{row[9]} {row[10]}",
+                    'pet_name': row[11],
+                    'doctor_full_name': f"{row[12]} {row[13]}"
+                })
+
+            
             cursor.close()
-            return results
-        else:
-            print("Błąd: Brak połączenia z bazą danych.")
-            return None
+            connection.close()
     except Exception as e:
         print(f"Błąd podczas pobierania danych: {e}")
     finally:
-        if connection and connection.is_connected():
+        if connection.is_connected():
             cursor.close()
             connection.close()
+
+    return visits  # Zwraca listę wizyt
+
+
 
 
 # fetch_scheduled_visits()
@@ -533,3 +572,75 @@ def update_visit_in_db(visit_id, current_date_time, client_last_name, pet_name, 
             cursor.close()
             connection.close()
     return False
+
+
+# ##############################        FUNKCJE POMOCNICZE DO DODAWANIA WIZYTY      ##########################################
+
+
+def fetch_clients_to_visit():
+    try:
+        connection = create_connection()
+        cursor = connection.cursor()
+        cursor.execute("SELECT id, first_name, last_name FROM clients")
+        return cursor.fetchall()
+    except Exception as e:
+        print(f"Błąd podczas pobierania klientów: {e}")
+        return []
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+def fetch_pets_to_visit(client_id):
+    try:
+        print(f"fetch_pets_to_visit: client_id = {client_id}")
+        connection = create_connection()
+        cursor = connection.cursor()
+        query = "SELECT id, pet_name FROM pets WHERE client_id = %s"
+        cursor.execute(query, (client_id,))
+        results = cursor.fetchall()
+        print(f"Liczba zwierząt klienta {client_id}: {len(results)}")
+        return results
+    except Exception as e:
+        print(f"Błąd podczas pobierania zwierząt klienta {client_id}: {e}")
+        return []
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+
+
+
+def fetch_doctors_to_visit():
+    try:
+        connection = create_connection()
+        cursor = connection.cursor()
+        cursor.execute("SELECT id, first_name, last_name FROM doctors")
+        return cursor.fetchall()
+    except Exception as e:
+        print(f"Błąd podczas pobierania lekarzy: {e}")
+        return []
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+
+def add_visit(client_id, pet_id, doctor_id, visit_date, visit_time):
+    try:
+        connection = create_connection()
+        cursor = connection.cursor()
+        query = """
+            INSERT INTO appointments (client_id, pet_id, doctor_id, visit_date, visit_time)
+            VALUES (%s, %s, %s, %s, %s)
+        """
+        cursor.execute(query, (client_id, pet_id, doctor_id, visit_date, visit_time))
+        connection.commit()
+        print("Wizyta została zapisana.")
+    except Exception as e:
+        print(f"Błąd zapisu wizyty: {e}")
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()

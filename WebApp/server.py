@@ -1,4 +1,4 @@
-from Database.operations_visits import fetch_scheduled_visits, fetch_visits_details, update_visit_in_db, format_visit_time, add_next_visit, get_client_id, get_client_data_by_id, get_current_time
+from Database.operations_visits import fetch_visits, fetch_visits_details, update_visit_in_db, format_visit_time, add_next_visit, get_client_id, get_client_data_by_id, get_current_time, fetch_clients_to_visit, fetch_pets_to_visit, fetch_doctors_to_visit, add_visit
 from Database.operations_client import fetch_clients, add_client, find_client, find_client_by_id, update_client, add_client_and_pet_s, soft_delete_client
 import Database.operations_doctors
 print(dir(Database.operations_doctors))
@@ -9,9 +9,11 @@ from Database.operations_receptionist import add_receptionist
 from Database.operations_pets import fetch_pets, add_pet, fetch_clients_to_indications, find_pet, find_pet_by_id, update_pet, soft_delete_pet
 from http.server import SimpleHTTPRequestHandler, HTTPServer
 import urllib.parse
-from urllib.parse import parse_qs
+from urllib.parse import parse_qs, urlparse
+import traceback  # dodaj na górze pliku
 import logging
 import os
+
 
 logging.basicConfig(level=logging.DEBUG)  # Ustawienie poziomu logowania na DEBUG
 
@@ -97,7 +99,7 @@ def render_home_page():
                     <a href="/doctors_list/" class="btn btn-warning">Lekarze</a>
                 </div>
                 <div class="col-md-6 mb-3">
-                    <a href="/visit_list/" class="btn btn-success darker">Wizyty</a>
+                    <a href="/visits_list/" class="btn btn-success darker">Wizyty</a>
                 </div>
             </div>
         </div>
@@ -115,7 +117,7 @@ def render_home_page():
 
 
 def render_visits_to_html():
-    visits = fetch_scheduled_visits() 
+    visits = fetch_scheduled_visits()  # type: ignore
     if not visits:
         return "<p>Brak zaplanowanych wizyt.</p>"
 
@@ -256,6 +258,43 @@ def render_add_pet():
     # Podmień placeholder
     html = html.replace("{{ client_options }}", client_options)
     return html
+
+def render_add_visit(client_id=None):
+    print(f"render_add_visit: client_id = {client_id}")
+    clients = fetch_clients_to_visit()
+    print(f"Liczba klientów: {len(clients)}")
+    doctors = fetch_doctors_to_visit()
+    print(f"Liczba lekarzy: {len(doctors)}")
+
+    # Generujemy listę klientów do selecta
+    client_options = "".join(
+        [f"<option value='{c[0]}' {'selected' if client_id == c[0] else ''}>{c[1]} {c[2]}</option>" for c in clients]
+    )
+
+    # Jeśli podano client_id, pobieramy tylko zwierzęta tego klienta
+    if client_id:
+        pets = fetch_pets_to_visit(client_id)
+    else:
+        pets = []
+
+    # Generujemy listę zwierząt do selecta
+    pet_options = "".join([f"<option value='{p[0]}'>{p[1]}</option>" for p in pets])
+
+    # Lista lekarzy
+    doctor_options = "".join([f"<option value='{d[0]}'>{d[1]} {d[2]}</option>" for d in doctors])
+
+    # Wczytanie szablonu HTML
+    template_path = os.path.join(os.getcwd(), "Templates", "adding_visit.html")
+    with open(template_path, "r", encoding="utf-8") as f:
+        html = f.read()
+
+    # Podstawienie danych do HTML
+    html = html.replace("{{ client_options }}", client_options)
+    html = html.replace("{{ pet_options }}", pet_options)
+    html = html.replace("{{ doctor_options }}", doctor_options)
+
+    return html
+
 
 def render_search_client():
     with open("templates/searching_client.html", "r", encoding="utf-8") as f:
@@ -595,6 +634,72 @@ class MyHandler(SimpleHTTPRequestHandler):
 
 
 
+#######################    LISTA WIZYT  #######################
+
+
+        elif self.path == "/visits_list/":
+            # Pobieramy listę wizyt z bazy danych
+            visits = fetch_visits()
+
+            # Debugowanie: sprawdzamy, co zostało pobrane
+            print(f"Pobrane dane: {visits}")
+
+            # Ścieżka do szablonu HTML
+            template_path = os.path.join(os.getcwd(), 'Templates', 'visits_list.html')
+
+            try:
+                # Odczytujemy zawartość pliku HTML
+                with open(template_path, 'r', encoding='utf-8') as file:
+                    template_content = file.read()
+
+                # Przygotowujemy dane do wstawienia w HTML
+                visits_html = ""
+                for visit in visits:
+                    visit_id = visit['id']  # ID klienta
+                    diagnosis = visit['diagnosis'] if visit['diagnosis'] not in [None, ""] else "brak diagnozy"
+
+                    deletion_date = visit['soft_delete'].strftime('%Y-%m-%d %H:%M:%S') if visit['soft_delete'] else "Wizyta aktualna"
+
+                    # Tworzymy wiersz tabeli, uwzględniając datę usunięcia
+                    visit_row = f"""
+                    <tr>
+                        <td>{visit_id}</td>
+                        <td>{visit['created_at']}</td>
+                        <td>{visit['client_full_name']}</td>
+                        <td>{visit['pet_name']}</td>
+                        <td>{visit['doctor_full_name']}</td>
+                        <td>{visit['visit_date']}</td>
+                        <td>{visit['visit_time']}</td>
+                        <td>{diagnosis}</td>
+                        <td>{deletion_date}</td>  <!-- Dodajemy datę usunięcia -->
+                        <td>
+                            <div class="btn-group">
+                                <a href="/update_visit/{visit_id}" class="btn btn-edit">Edytuj</a>
+                                <a href="/delete_visit/{visit_id}" class="btn btn-danger">Usuń</a>
+                            </div>
+                        </td>
+                    </tr>
+                    """
+                    visits_html += visit_row  # Dodajemy wiersz dla każdej wizyty
+
+                # Zamieniamy placeholder {{ visit_row }} w szablonie na wygenerowany HTML z wizyty
+                rendered_content = template_content.replace("{{ visit_rows }}", visits_html)
+
+                # Wysyłamy odpowiedź HTTP
+                self.send_response(200)
+                self.send_header("Content-type", "text/html")
+                self.end_headers()
+                self.wfile.write(rendered_content.encode('utf-8'))
+
+            except Exception as e:
+                print("Błąd podczas renderowania strony:")
+                traceback.print_exc()  # To wyświetli pełny stos błędów
+                self.send_response(500)
+                self.send_header("Content-type", "text/html; charset=utf-8")
+                self.end_headers()
+                self.wfile.write(f"<h1>Błąd renderowania strony:</h1><pre>{traceback.format_exc()}</pre>".encode("utf-8"))
+
+
 ########################    DODAWANIE KLIENTA  ################
     
 
@@ -630,6 +735,43 @@ class MyHandler(SimpleHTTPRequestHandler):
             self.send_header("Content-type", "text/html; charset=utf-8")
             self.end_headers()
             self.wfile.write(add_pet_html.encode('utf-8'))
+
+
+########################    DODAWANIE WIZYTY      ################
+
+
+
+        elif self.path.startswith("/adding_visit/"):
+            try:
+                parsed_url = urlparse(self.path)
+                query_params = parse_qs(parsed_url.query)
+                client_id_str = query_params.get('client_id', [None])[0]
+                print(f"client_id_str: {client_id_str}")
+
+                try:
+                    client_id = int(client_id_str) if client_id_str and client_id_str.isdigit() else None
+                except ValueError:
+                    client_id = None
+                    print(f"Niepoprawny client_id: {client_id_str}")
+
+
+                html = render_add_visit(client_id)
+
+                self.send_response(200)
+                self.send_header("Content-type", "text/html; charset=utf-8")
+                self.end_headers()
+                self.wfile.write(html.encode("utf-8"))
+
+            except Exception as e:
+                print("Błąd w obsłudze /adding_visit/:")
+                print(traceback.format_exc())
+
+                self.send_response(500)
+                self.send_header("Content-type", "text/html; charset=utf-8")
+                self.end_headers()
+                error_message = f"<h1>Błąd:</h1><pre>{traceback.format_exc()}</pre>"
+                self.wfile.write(error_message.encode("utf-8"))
+
 
 
 ########################    WYSZUKIWANIE KLIENTA  ################
@@ -1177,6 +1319,45 @@ class MyHandler(SimpleHTTPRequestHandler):
 
             print(post_data)  # Sprawdzić, co jest przesyłane
             self.handle_add_pet_post(data)
+
+
+
+        elif self.path == "/adding_visit/":
+            try:
+                content_length = int(self.headers['Content-Length'])
+                post_data = self.rfile.read(content_length).decode("utf-8")
+                data = parse_qs(post_data)
+
+                client_id = int(data.get("client_id", [0])[0])
+                pet_id = int(data.get("pet_id", [0])[0])
+                doctor_id = int(data.get("doctor_id", [0])[0])
+                visit_date = data.get("visit_date", [""])[0]
+                visit_time = data.get("visit_time", [""])[0]
+
+                print(f"Dane do zapisu wizyty: {client_id=}, {pet_id=}, {doctor_id=}, {visit_date=}, {visit_time=}")
+                if visit_time and len(visit_time) == 5:
+                    visit_time += ":00"  # "20:05" → "20:05:00"
+
+                # Wywołanie funkcji dodającej wizytę do bazy
+                add_visit(client_id, pet_id, doctor_id, visit_date, visit_time)
+                if not all([client_id, pet_id, doctor_id, visit_date, visit_time]):
+                    raise ValueError("Niekompletne dane wizyty - uzupełnij wszystkie pola.")
+
+                # Potwierdzenie
+                self.send_response(303)  # redirect after post
+                self.send_header("Location", "/visits_list/")
+                self.end_headers()
+
+            except Exception as e:
+                import traceback
+                print(traceback.format_exc())
+                self.send_response(500)
+                self.send_header("Content-type", "text/html; charset=utf-8")
+                self.end_headers()
+                self.wfile.write(f"<h1>Błąd zapisu wizyty:</h1><pre>{e}</pre>".encode("utf-8"))
+
+
+                
 
 ###################     WYSZUKUJEMY KLIENTA      ##################################
 
