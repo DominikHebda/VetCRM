@@ -1,4 +1,4 @@
-from Database.operations_visits import fetch_visits, fetch_visits_details, update_visit_in_db, format_visit_time, add_next_visit, get_client_id, get_client_data_by_id, get_current_time, fetch_clients_to_visit, fetch_pets_to_visit, fetch_doctors_to_visit, add_visit
+from Database.operations_visits import fetch_visits, fetch_visits_details, update_visit_in_db, format_visit_time, add_next_visit, get_client_id, get_client_data_by_id, get_current_time, fetch_clients_to_visit, fetch_pets_to_visit, fetch_doctors_to_visit, add_visit, find_visit_by_id
 from Database.operations_client import fetch_clients, add_client, find_client, find_client_by_id, update_client, add_client_and_pet_s, soft_delete_client
 import Database.operations_doctors
 print(dir(Database.operations_doctors))
@@ -10,7 +10,7 @@ from Database.operations_pets import fetch_pets, add_pet, fetch_clients_to_indic
 from http.server import SimpleHTTPRequestHandler, HTTPServer
 import urllib.parse
 from urllib.parse import parse_qs, urlparse
-import traceback  # dodaj na górze pliku
+import traceback  
 import logging
 import os
 
@@ -945,6 +945,76 @@ class MyHandler(SimpleHTTPRequestHandler):
                             self.send_error(404, "Plik szablonu nie znaleziony")
                     else:
                         self.send_error(404, "Zwierzę nie znaleziony")            
+
+
+#########################   UAKTUALNIAMY DANE WIZYTY    ##########################################
+
+        elif self.path.startswith("/update_visit/"):
+            visit_id = self.path.split("/")[2]  # np. /update_visit/5
+
+            visit = find_visit_by_id(visit_id)
+
+            if visit:
+                # Rozpakowanie danych wizyty
+                visit_data = {
+                    "visit_id": visit[0],
+                    "created_at": visit[1],  # Możesz nie używać w formularzu
+                    "client_id": visit[2],
+                    "pet_id": visit[3],
+                    "doctor_id": visit[4],
+                    "visit_date": visit[5],
+                    "visit_time": visit[6],
+                    "diagnosis": visit[7]
+                }
+
+                # Wczytanie danych do selectów
+                clients = fetch_clients()
+                pets = fetch_pets()
+                doctors = fetch_doctors()
+
+                # Budowanie opcji <select>
+                client_options = ""
+                for client in clients:
+                    selected = "selected" if str(client[0]) == str(visit_data["client_id"]) else ""
+                    client_options += f'<option value="{client[0]}" {selected}>{client[1]}</option>\n'
+
+                pet_options = ""
+                for pet in pets:
+                    selected = "selected" if str(pet[0]) == str(visit_data["pet_id"]) else ""
+                    pet_options += f'<option value="{pet[0]}" {selected}>{pet[1]}</option>\n'
+
+                doctor_options = ""
+                for doctor in doctors:
+                    selected = "selected" if str(doctor[0]) == str(visit_data["doctor_id"]) else ""
+                    doctor_options += f'<option value="{doctor[0]}" {selected}>{doctor[1]}</option>\n'
+
+                try:
+                    template_path = os.path.join(os.path.dirname(__file__), 'Templates', 'update_visit.html')
+
+                    if os.path.exists(template_path):
+                        with open(template_path, "r", encoding="utf-8") as f:
+                            template = f.read()
+
+                        # Podstawianie danych do szablonu
+                        for key, value in visit_data.items():
+                            template = template.replace(f"{{{{ {key} }}}}", str(value))
+
+                        template = template.replace("{{ client_options }}", client_options)
+                        template = template.replace("{{ pet_options }}", pet_options)
+                        template = template.replace("{{ doctor_options }}", doctor_options)
+
+                        self.send_response(200)
+                        self.send_header("Content-type", "text/html; charset=utf-8")
+                        self.end_headers()
+                        self.wfile.write(template.encode("utf-8"))
+
+                    else:
+                        self.send_error(404, "Plik szablonu nie znaleziony")
+                except FileNotFoundError:
+                    self.send_error(404, "Plik szablonu nie znaleziony")
+            else:
+                self.send_error(404, "Wizyta nie znaleziona")
+
 
 
 

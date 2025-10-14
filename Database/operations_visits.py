@@ -7,7 +7,6 @@ from Database.operations_pets import add_pet
 import traceback
 import pymysql
 import logging
-import urllib.parse
 
 
 logging.basicConfig(level=logging.DEBUG)
@@ -73,6 +72,28 @@ def fetch_visits():
             connection.close()
 
     return visits  # Zwraca listę wizyt
+
+
+def find_visit_by_id(visit_id):
+    try:
+        conn = create_connection()
+        cursor = conn.cursor()
+
+        query = '''
+            SELECT id, created_at, client_id, pet_id, doctor_id, visit_date, visit_time, diagnosis
+            FROM appointments
+            WHERE id = %s AND soft_delete IS NULL
+        '''
+        cursor.execute(query, (visit_id,))
+        result = cursor.fetchone()
+
+        conn.close()
+
+        return result  # np. (8, datetime.datetime(...), 1, 2, 3, date(...), '13:50', 'Brak diagnozy')
+
+    except Exception as e:
+        print(f"[BŁĄD] Nie udało się znaleźć wizyty o ID {visit_id}: {e}")
+        return None
 
 
 

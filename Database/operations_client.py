@@ -127,33 +127,40 @@ def add_client_and_pet_s(first_name, last_name, phone, address, pet_name, specie
 
 # SZUKANIE KLIENTÓW NA PODSTAWIE ID LUB IMIENIA I NAZWISKA
 def find_client(first_name, last_name):
-    """Szukanie klientów na podstawie imienia i nazwiska."""
-    connection = None
+    """Szukanie klientów na podstawie imienia i nazwiska (ignorując spacje na początku/końcu)."""
     try:
+        # Czyszczenie danych wejściowych z niechcianych spacji
+        first_name = first_name.strip()
+        last_name = last_name.strip()
+
         connection = create_connection()
-        cursor = connection.cursor()
+        with connection.cursor() as cursor:
+            print(f"Szukam klienta o imieniu: '{first_name}' i nazwisku: '{last_name}'")
 
-        # Logowanie przyjętych danych
-        print(f"Szukam klienta o imieniu: {first_name} i nazwisku: {last_name}")
+            # TRIM usuwa spacje z początku i końca w bazie
+            query = """
+                SELECT * FROM clients
+                WHERE TRIM(first_name) = TRIM(%s) AND TRIM(last_name) = TRIM(%s)
+            """
+            cursor.execute(query, (first_name, last_name))
+            results = cursor.fetchall()
 
-        cursor.execute("SELECT * FROM clients WHERE first_name = %s AND last_name = %s", (first_name, last_name))
-        results = cursor.fetchall()
-
-        if results:
-            print(f"Znaleziono {len(results)} klienta:")
-            for row in results:
-                print(f"ID: {row[0]}, Imię: {row[1]}, Nazwisko: {row[2]}, Telefon: {row[3]}, Adres: {row[4]}")
-            return results  # Zwracamy listę wyników
-        else:
-            print("Nie znaleziono klientów o podanych danych.")
-            return None
+            if results:
+                print(f"Znaleziono {len(results)} klient(a/ów):")
+                for row in results:
+                    print(f"ID: {row[0]}, Imię: {row[1]}, Nazwisko: {row[2]}, Telefon: {row[3]}, Adres: {row[4]}")
+                return results
+            else:
+                print("Nie znaleziono klientów o podanych danych.")
+                return []
 
     except Exception as e:
         print(f"Błąd podczas pobierania danych: {e}")
+        return None
     finally:
-        if connection.is_connected():
-            cursor.close()
+        if connection:
             connection.close()
+
 
 
 def find_client_by_id(client_id):
