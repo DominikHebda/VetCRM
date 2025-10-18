@@ -228,16 +228,6 @@ def render_add_next_visit():
     
     return add_next_visit_html
 
-# ###############       STARY FRAGMENT KODU     ###########################################################
-
-# def render_add_client_and_pet_form():
-#     with open("templates/adding_client_and_pet.html", "r", encoding="utf-8") as f:
-#         add_client_and_pet_html = f.read()
-
-#     return add_client_and_pet_html   
-
-
-
 def render_add_client():
     with open("templates/adding_client.html", "r", encoding="utf-8") as f:
         add_client_html = f.read()
@@ -354,48 +344,6 @@ def render_update_pet(pet_data):
 
     return html
 
-# #################     STARY FRAGMENT KODU         ##################################################
-
-###################     DODAJEMY NOWEGO KLIENTA I JEGO ZWIERZĘ      ##################################
-
-# def render_add_new_client_and_pet():
-#     add_new_client_and_pet_html = """
-#     <h1>Dodaj nową wizytę</h1>
-#     <form method="POST" action="/add_new_client_and_pet/" enctype="application/x-www-form-urlencoded; charset=UTF-8">
-#     <meta charset="UTF-8">
-        
-#         <label for="client_first_name">Podaj imię klienta:</label>
-#         <input type="text" id="client_first_name" name="client_first_name" /><br><br>
-
-#         <label for="client_last_name">Podaj nazwisko klienta:</label>
-#         <input type="text" id="client_last_name" name="client_last_name" /><br><br>
-        
-#         <label for="client_phone">Podaj numer telefonu klienta:</label>
-#         <input type="text" id="client_phone" name="client_phone" /><br><br>
-        
-#         <label for="client_address">Podaj adres klienta:</label>
-#         <input type="text" id="client_address" name="client_address" /><br><br>
-        
-#         <label for="pet_name">Podaj nazwę zwierzęcia:</label>
-#         <input type="text" id="pet_name" name="pet_name" /><br><br>
-        
-#         <label for="doctor_name">Podaj nazwisko lekarza:</label>
-#         <input type="text" id="doctor_name" name="doctor_name" /><br><br>
-        
-#         <label for="date_of_visit">Podaj datę wizyty:</label>
-#         <input type="date" id="date_of_visit" name="date_of_visit" /><br><br>
-
-#         <label for="visit_time">Podaj wiek zwierzęcia:</label>
-#         <input type="time" id="visit_time" name="visit_time" /><br><br>
-
-#         <input type="submit" value="Zapisz nową wizytę" />
-#     </form>
-#     <p><a href="/">Powrót do listy wizyt</a></p>
-#     """
-
-#     return add_new_client_and_pet_html
-
-# ###########################################################################################
 
 def render_visit_edit_form(visit_id):
     visit = fetch_visits_details(visit_id)
@@ -1077,46 +1025,7 @@ class MyHandler(SimpleHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(f"<p>Błąd: {e}".encode("utf-8"))
 
-# ###############       STARY FRAGMENT KODU     #####################################################
 
-        # elif self.path.startswith("/adding_client_and_pet/"):
-        #     adding_client_and_pet_form_html = render_add_client_and_pet_form()
-        #     self.send_response(200)
-        #     self.send_header("Content-type", "text/html; charset=utf-8")
-        #     self.end_headers()
-        #     self.wfile.write(adding_client_and_pet_form_html.encode('utf-8'))
-
-# ##################################################################################################
-        # elif self.path == "/add_doctor/":
-        #     try:
-        #         final_html = render_add_doctor()
-        #         self.send_response(200)
-        #         self.send_header("Content-type", "text/html; charset=utf-8")
-        #         self.end_headers()
-        #         self.wfile.write(final_html.encode("utf-8"))
-        #     except Exception as e:
-        #         self.send_response(500)
-        #         self.send_header("Content-type", "text/html; charset=utf-8")
-        #         self.end_headers()
-        #         self.wfile.write(f"<p>Błąd: {e}".encode("utf-8"))
-
-
-# ################################################################################################################
-
-        # elif self.path == "/add_receptionist/":
-        #     try:
-        #         final_html_html = render_add_receptionist_form()
-        #         self.send_response(200)
-        #         self.send_header("Content-type", "text/html; charset=utf-8")
-        #         self.end_headers()
-        #         self.wfile.write(final_html_html.encode('utf-8'))
-        #     except Exception as e:
-        #         self.send_response(500)
-        #         self.send_header("Content-type", "text/html; charset=utf-8")
-        #         self.end_headers()
-        #         self.wfile.write(f"<p>Błąd: {e}".encode("utf-8"))
-
-# ############################################################################################################
 
 # ###################       USUWAMY KLIENTA - SOFT DELETE       ##########################
 
@@ -1740,58 +1649,7 @@ class MyHandler(SimpleHTTPRequestHandler):
                 # Jeżeli zwierzę nie zostało znalezione, zwróć błąd
                 self.send_error(404, "Nie znaleziono zwierzęcia.")
 
-
-###################     DODAJEMY NOWEGO KLIENTA I JEGO ZWIERZĘ      ##################################
-
-        # elif self.path.startswith("/adding_client_and_pet/"):
-        #     try:
-        #         # Parsowanie danych z formularza
-        #         content_length = int(self.headers.get('Content-Length'))
-        #         post_data = self.rfile.read(content_length)
-        #         data = urllib.parse.parse_qs(post_data.decode('utf-8'))
-
-        #         first_name = data.get('client_first_name', [''])[0]
-        #         last_name = data.get('client_last_name', [''])[0]
-        #         phone = data.get('client_phone', [''])[0]
-        #         address = data.get('client_address', [''])[0]
-        #         pet_name = data.get('pet_name', [''])[0]
-        #         species = data.get('species', [''])[0]
-        #         breed = data.get('breed', [''])[0]
-        #         age = int(data.get('age', ['0'])[0])
-
-        #         # Dodanie klienta i zwierzęcia
-        #         added_client_and_pet = add_client_and_pet_s(
-        #             first_name=first_name,
-        #             last_name=last_name,
-        #             phone=phone,
-        #             address=address,
-        #             pet_name=pet_name,
-        #             species=species,
-        #             breed=breed,
-        #             age=age
-        #         )
-
-        #         if added_client_and_pet:
-        #             self.send_response(200)
-        #             self.send_header("Content-type", "text/html; charset=utf-8")
-        #             self.end_headers()
-        #             self.wfile.write("<p>Klient i zwierzę zostali zapisani</p>".encode('utf-8'))
-        #         else:
-        #             print("Klient i zwierzę nie zostali zapisani.")
-        #             self.send_response(500)
-        #             self.send_header("Content-type", "text/html; charset=utf-8")
-        #             self.end_headers()
-        #             self.wfile.write("<p>Wystąpił błąd podczas zapisywania klienta i zwierzęcia.</p>".encode('utf-8'))
-
-        #     except Exception as e:
-        #         print(f"Błąd podczas przetwarzania POST: {e}")
-        #         self.send_response(500)
-        #         self.send_header("Content-type", "text/html; charset=utf-8")
-        #         self.end_headers()
-        #         self.wfile.write(f"<p>Błąd: {e}</p>".encode('utf-8'))
-
-
-
+# ####################      DODAWANIE RECEPCJONISTKI        ############################################
 
         elif self.path == "/add_receptionist/":
             content_length = int(self.headers['Content-Length'])
@@ -1862,26 +1720,6 @@ class MyHandler(SimpleHTTPRequestHandler):
 
 # #####################         DEF SEARCHING POST      ##########################
 
-# #####################         STARY FRAGMENT KODU     ##########################
-
-    # def handle_search_client_post(self, data):
-    #     first_name = data.get('client_first_name', '')
-    #     last_name = data.get('client_last_name', '')
-
-    #     try:
-    #         find_client(first_name, last_name)
-    #         self.send_response(200)
-    #         self.send_header("Content-type", "text/html; charset=utf-8")
-    #         self.end_headers()
-    #         self.wfile.write("<p>Znaleziono klienta: {first_name} {last_name}</p>".encode('utf-8'))
-    #     except Exception as e:
-    #             # Wysłanie odpowiedzi HTTP w przypadku błędu
-    #         self.send_response(500)
-    #         self.send_header("Content-type", "text/html; charset=utf-8")
-    #         self.end_headers()
-    #         self.wfile.write(f"<p>Wystąpił błąd: {e}</p>".encode('utf-8'))
-
-# ###################################################################################
 
     def handle_search_doctor_post(self, data):
         first_name = data.get('doctor_first_name', '')
@@ -1919,30 +1757,6 @@ class MyHandler(SimpleHTTPRequestHandler):
             self.wfile.write(f"<p>Wystąpił błąd: {e}</p>".encode('utf-8'))
 
 
-
-
-    # # Przenosimy metodę handle_add_doctor_post na poziom klasy
-    # def handle_add_doctor_post(self, data):
-    #     first_name = data.get('doctor_first_name', '')
-    #     last_name = data.get('doctor_last_name', '')
-    #     specialization = data.get('doctor_specialization', '')
-
-    #     try:
-    #         # Wywołanie funkcji do dodania lekarza
-    #         add_doctor(first_name, last_name, specialization)
-
-    #         # Wysłanie odpowiedzi HTTP
-    #         self.send_response(200)
-    #         self.send_header("Content-type", "text/html; charset=utf-8")
-    #         self.end_headers()
-    #         self.wfile.write("<p>Doktor został dodany do bazy danych!</p>".encode('utf-8'))
-    #     except Exception as e:
-    #         # Wysłanie odpowiedzi HTTP w przypadku błędu
-    #         self.send_response(500)
-    #         self.send_header("Content-type", "text/html; charset=utf-8")
-    #         self.end_headers()
-    #         self.wfile.write(f"<p>Wystąpił błąd: {e}</p>".encode('utf-8'))
-
     def handle_add_receptionist_post(self, data):
         first_name = data.get('receptionist_first_name', '')
         last_name = data.get('receptionist_last_name', '')
@@ -1971,5 +1785,196 @@ def run_server():
 
 if __name__ == "__main__":
     run_server()
+
+
+
+
+    
+
+# ###############       STARY FRAGMENT KODU     ###########################################################
+
+# def render_add_client_and_pet_form():
+#     with open("templates/adding_client_and_pet.html", "r", encoding="utf-8") as f:
+#         add_client_and_pet_html = f.read()
+
+#     return add_client_and_pet_html  
+
+# # Przenosimy metodę handle_add_doctor_post na poziom klasy
+    # def handle_add_doctor_post(self, data):
+    #     first_name = data.get('doctor_first_name', '')
+    #     last_name = data.get('doctor_last_name', '')
+    #     specialization = data.get('doctor_specialization', '')
+
+    #     try:
+    #         # Wywołanie funkcji do dodania lekarza
+    #         add_doctor(first_name, last_name, specialization)
+
+    #         # Wysłanie odpowiedzi HTTP
+    #         self.send_response(200)
+    #         self.send_header("Content-type", "text/html; charset=utf-8")
+    #         self.end_headers()
+    #         self.wfile.write("<p>Doktor został dodany do bazy danych!</p>".encode('utf-8'))
+    #     except Exception as e:
+    #         # Wysłanie odpowiedzi HTTP w przypadku błędu
+    #         self.send_response(500)
+    #         self.send_header("Content-type", "text/html; charset=utf-8")
+    #         self.end_headers()
+    #         self.wfile.write(f"<p>Wystąpił błąd: {e}</p>".encode('utf-8'))
+
+    # #####################         STARY FRAGMENT KODU     ##########################
+
+    # def handle_search_client_post(self, data):
+    #     first_name = data.get('client_first_name', '')
+    #     last_name = data.get('client_last_name', '')
+
+    #     try:
+    #         find_client(first_name, last_name)
+    #         self.send_response(200)
+    #         self.send_header("Content-type", "text/html; charset=utf-8")
+    #         self.end_headers()
+    #         self.wfile.write("<p>Znaleziono klienta: {first_name} {last_name}</p>".encode('utf-8'))
+    #     except Exception as e:
+    #             # Wysłanie odpowiedzi HTTP w przypadku błędu
+    #         self.send_response(500)
+    #         self.send_header("Content-type", "text/html; charset=utf-8")
+    #         self.end_headers()
+    #         self.wfile.write(f"<p>Wystąpił błąd: {e}</p>".encode('utf-8'))
+
+# ###################################################################################
+
+###################     DODAJEMY NOWEGO KLIENTA I JEGO ZWIERZĘ      ##################################
+
+        # elif self.path.startswith("/adding_client_and_pet/"):
+        #     try:
+        #         # Parsowanie danych z formularza
+        #         content_length = int(self.headers.get('Content-Length'))
+        #         post_data = self.rfile.read(content_length)
+        #         data = urllib.parse.parse_qs(post_data.decode('utf-8'))
+
+        #         first_name = data.get('client_first_name', [''])[0]
+        #         last_name = data.get('client_last_name', [''])[0]
+        #         phone = data.get('client_phone', [''])[0]
+        #         address = data.get('client_address', [''])[0]
+        #         pet_name = data.get('pet_name', [''])[0]
+        #         species = data.get('species', [''])[0]
+        #         breed = data.get('breed', [''])[0]
+        #         age = int(data.get('age', ['0'])[0])
+
+        #         # Dodanie klienta i zwierzęcia
+        #         added_client_and_pet = add_client_and_pet_s(
+        #             first_name=first_name,
+        #             last_name=last_name,
+        #             phone=phone,
+        #             address=address,
+        #             pet_name=pet_name,
+        #             species=species,
+        #             breed=breed,
+        #             age=age
+        #         )
+
+        #         if added_client_and_pet:
+        #             self.send_response(200)
+        #             self.send_header("Content-type", "text/html; charset=utf-8")
+        #             self.end_headers()
+        #             self.wfile.write("<p>Klient i zwierzę zostali zapisani</p>".encode('utf-8'))
+        #         else:
+        #             print("Klient i zwierzę nie zostali zapisani.")
+        #             self.send_response(500)
+        #             self.send_header("Content-type", "text/html; charset=utf-8")
+        #             self.end_headers()
+        #             self.wfile.write("<p>Wystąpił błąd podczas zapisywania klienta i zwierzęcia.</p>".encode('utf-8'))
+
+        #     except Exception as e:
+        #         print(f"Błąd podczas przetwarzania POST: {e}")
+        #         self.send_response(500)
+        #         self.send_header("Content-type", "text/html; charset=utf-8")
+        #         self.end_headers()
+        #         self.wfile.write(f"<p>Błąd: {e}</p>".encode('utf-8'))
+
+
+        # ###############       STARY FRAGMENT KODU     #####################################################
+
+        # elif self.path.startswith("/adding_client_and_pet/"):
+        #     adding_client_and_pet_form_html = render_add_client_and_pet_form()
+        #     self.send_response(200)
+        #     self.send_header("Content-type", "text/html; charset=utf-8")
+        #     self.end_headers()
+        #     self.wfile.write(adding_client_and_pet_form_html.encode('utf-8'))
+
+# ##################################################################################################
+        # elif self.path == "/add_doctor/":
+        #     try:
+        #         final_html = render_add_doctor()
+        #         self.send_response(200)
+        #         self.send_header("Content-type", "text/html; charset=utf-8")
+        #         self.end_headers()
+        #         self.wfile.write(final_html.encode("utf-8"))
+        #     except Exception as e:
+        #         self.send_response(500)
+        #         self.send_header("Content-type", "text/html; charset=utf-8")
+        #         self.end_headers()
+        #         self.wfile.write(f"<p>Błąd: {e}".encode("utf-8"))
+
+
+# ################################################################################################################
+
+        # elif self.path == "/add_receptionist/":
+        #     try:
+        #         final_html_html = render_add_receptionist_form()
+        #         self.send_response(200)
+        #         self.send_header("Content-type", "text/html; charset=utf-8")
+        #         self.end_headers()
+        #         self.wfile.write(final_html_html.encode('utf-8'))
+        #     except Exception as e:
+        #         self.send_response(500)
+        #         self.send_header("Content-type", "text/html; charset=utf-8")
+        #         self.end_headers()
+        #         self.wfile.write(f"<p>Błąd: {e}".encode("utf-8"))
+
+# ############################################################################################################
+
+
+# #################     STARY FRAGMENT KODU         ##################################################
+
+###################     DODAJEMY NOWEGO KLIENTA I JEGO ZWIERZĘ      ##################################
+
+# def render_add_new_client_and_pet():
+#     add_new_client_and_pet_html = """
+#     <h1>Dodaj nową wizytę</h1>
+#     <form method="POST" action="/add_new_client_and_pet/" enctype="application/x-www-form-urlencoded; charset=UTF-8">
+#     <meta charset="UTF-8">
+        
+#         <label for="client_first_name">Podaj imię klienta:</label>
+#         <input type="text" id="client_first_name" name="client_first_name" /><br><br>
+
+#         <label for="client_last_name">Podaj nazwisko klienta:</label>
+#         <input type="text" id="client_last_name" name="client_last_name" /><br><br>
+        
+#         <label for="client_phone">Podaj numer telefonu klienta:</label>
+#         <input type="text" id="client_phone" name="client_phone" /><br><br>
+        
+#         <label for="client_address">Podaj adres klienta:</label>
+#         <input type="text" id="client_address" name="client_address" /><br><br>
+        
+#         <label for="pet_name">Podaj nazwę zwierzęcia:</label>
+#         <input type="text" id="pet_name" name="pet_name" /><br><br>
+        
+#         <label for="doctor_name">Podaj nazwisko lekarza:</label>
+#         <input type="text" id="doctor_name" name="doctor_name" /><br><br>
+        
+#         <label for="date_of_visit">Podaj datę wizyty:</label>
+#         <input type="date" id="date_of_visit" name="date_of_visit" /><br><br>
+
+#         <label for="visit_time">Podaj wiek zwierzęcia:</label>
+#         <input type="time" id="visit_time" name="visit_time" /><br><br>
+
+#         <input type="submit" value="Zapisz nową wizytę" />
+#     </form>
+#     <p><a href="/">Powrót do listy wizyt</a></p>
+#     """
+
+#     return add_new_client_and_pet_html
+
+# ###########################################################################################
 
 

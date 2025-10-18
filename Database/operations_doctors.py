@@ -142,6 +142,39 @@ def update_doctor(doctor_id, first_name, last_name, specialization, phone):
         print(f"Błąd podczas aktualizowania danych lekarza: {e}")
 
 
+def soft_delete_doctor(doctor_id):
+    """Oznacza lekarza jako usuniętego w bazie danych (soft delete)"""
+    try:
+        # Tworzymy połączenie z bazą danych
+        connection = create_connection()
+        if connection:
+            cursor = connection.cursor()
+
+            # Pobieramy bieżącą datę i godzinę
+            current_time = datetime.now()
+
+            # Zapytanie SQL do oznaczenia lekarza jako usuniętego
+            query = """
+            UPDATE doctors
+            SET soft_delete = %s
+            WHERE id = %s AND soft_delete IS NULL
+            """
+            cursor.execute(query, (current_time, doctor_id))
+
+            connection.commit()  # Zatwierdzamy zmiany w bazie danych
+
+            # Sprawdzamy, czy zapytanie zaktualizowało jakikolwiek rekord
+            if cursor.rowcount > 0:
+                print(f"Lekarz o ID {doctor_id} został oznaczony jako usunięty.")
+            else:
+                print(f"Nie udało się oznaczyć lekarza o ID {doctor_id} jako usuniętego.")
+            
+            cursor.close()
+            connection.close()
+
+    except Exception as e:
+        print(f"Błąd podczas oznaczania lekarza jako usuniętego: {e}")
+
 # def update_doctor():
 #     doctors = find_doctor()
 #     if not doctors:
@@ -192,36 +225,3 @@ def update_doctor(doctor_id, first_name, last_name, specialization, phone):
 #         print(f"Błąd podczas aktualizowania danych lekarza")
 
 # update_doctor()
-
-def soft_delete_doctor(doctor_id):
-    """Oznacza lekarza jako usuniętego w bazie danych (soft delete)"""
-    try:
-        # Tworzymy połączenie z bazą danych
-        connection = create_connection()
-        if connection:
-            cursor = connection.cursor()
-
-            # Pobieramy bieżącą datę i godzinę
-            current_time = datetime.now()
-
-            # Zapytanie SQL do oznaczenia lekarza jako usuniętego
-            query = """
-            UPDATE doctors
-            SET soft_delete = %s
-            WHERE id = %s AND soft_delete IS NULL
-            """
-            cursor.execute(query, (current_time, doctor_id))
-
-            connection.commit()  # Zatwierdzamy zmiany w bazie danych
-
-            # Sprawdzamy, czy zapytanie zaktualizowało jakikolwiek rekord
-            if cursor.rowcount > 0:
-                print(f"Lekarz o ID {doctor_id} został oznaczony jako usunięty.")
-            else:
-                print(f"Nie udało się oznaczyć lekarza o ID {doctor_id} jako usuniętego.")
-            
-            cursor.close()
-            connection.close()
-
-    except Exception as e:
-        print(f"Błąd podczas oznaczania lekarza jako usuniętego: {e}")
