@@ -1,5 +1,5 @@
 from Database.operations_visits import fetch_visits, fetch_visits_details, update_visit_in_db, format_visit_time, add_next_visit, get_client_id, get_client_data_by_id, get_current_time, fetch_clients_to_visit, fetch_pets_to_visit, fetch_doctors_to_visit, add_visit, find_visit_by_id
-from Database.operations_client import fetch_clients, add_client, find_client, find_client_by_id, update_client, add_client_and_pet_s, soft_delete_client
+from Database.operations_client import fetch_clients, add_client, find_client, find_client_by_id, update_client, soft_delete_client
 import Database.operations_doctors
 print(dir(Database.operations_doctors))
 print(">>> Ładuje się właściwy plik operations_doctors.py")
@@ -115,6 +115,7 @@ def render_home_page():
 
 
 
+# ########          FRAGMENT KODU DO SPRAWDZENIA                  ##########################################################################################3
 
 def render_visits_to_html():
     visits = fetch_scheduled_visits()  # type: ignore
@@ -184,6 +185,8 @@ def render_visits_to_html():
 
     return final_html
 
+# ##############################################################################################################################3
+
 def render_visit_details(visit_id):
     visit = fetch_visits_details(visit_id)
     if not visit:
@@ -225,11 +228,15 @@ def render_add_next_visit():
     
     return add_next_visit_html
 
-def render_add_client_and_pet_form():
-    with open("templates/adding_client_and_pet.html", "r", encoding="utf-8") as f:
-        add_client_and_pet_html = f.read()
+# ###############       STARY FRAGMENT KODU     ###########################################################
 
-    return add_client_and_pet_html   
+# def render_add_client_and_pet_form():
+#     with open("templates/adding_client_and_pet.html", "r", encoding="utf-8") as f:
+#         add_client_and_pet_html = f.read()
+
+#     return add_client_and_pet_html   
+
+
 
 def render_add_client():
     with open("templates/adding_client.html", "r", encoding="utf-8") as f:
@@ -347,45 +354,48 @@ def render_update_pet(pet_data):
 
     return html
 
+# #################     STARY FRAGMENT KODU         ##################################################
 
 ###################     DODAJEMY NOWEGO KLIENTA I JEGO ZWIERZĘ      ##################################
 
-def render_add_new_client_and_pet():
-    add_new_client_and_pet_html = """
-    <h1>Dodaj nową wizytę</h1>
-    <form method="POST" action="/add_new_client_and_pet/" enctype="application/x-www-form-urlencoded; charset=UTF-8">
-    <meta charset="UTF-8">
+# def render_add_new_client_and_pet():
+#     add_new_client_and_pet_html = """
+#     <h1>Dodaj nową wizytę</h1>
+#     <form method="POST" action="/add_new_client_and_pet/" enctype="application/x-www-form-urlencoded; charset=UTF-8">
+#     <meta charset="UTF-8">
         
-        <label for="client_first_name">Podaj imię klienta:</label>
-        <input type="text" id="client_first_name" name="client_first_name" /><br><br>
+#         <label for="client_first_name">Podaj imię klienta:</label>
+#         <input type="text" id="client_first_name" name="client_first_name" /><br><br>
 
-        <label for="client_last_name">Podaj nazwisko klienta:</label>
-        <input type="text" id="client_last_name" name="client_last_name" /><br><br>
+#         <label for="client_last_name">Podaj nazwisko klienta:</label>
+#         <input type="text" id="client_last_name" name="client_last_name" /><br><br>
         
-        <label for="client_phone">Podaj numer telefonu klienta:</label>
-        <input type="text" id="client_phone" name="client_phone" /><br><br>
+#         <label for="client_phone">Podaj numer telefonu klienta:</label>
+#         <input type="text" id="client_phone" name="client_phone" /><br><br>
         
-        <label for="client_address">Podaj adres klienta:</label>
-        <input type="text" id="client_address" name="client_address" /><br><br>
+#         <label for="client_address">Podaj adres klienta:</label>
+#         <input type="text" id="client_address" name="client_address" /><br><br>
         
-        <label for="pet_name">Podaj nazwę zwierzęcia:</label>
-        <input type="text" id="pet_name" name="pet_name" /><br><br>
+#         <label for="pet_name">Podaj nazwę zwierzęcia:</label>
+#         <input type="text" id="pet_name" name="pet_name" /><br><br>
         
-        <label for="doctor_name">Podaj nazwisko lekarza:</label>
-        <input type="text" id="doctor_name" name="doctor_name" /><br><br>
+#         <label for="doctor_name">Podaj nazwisko lekarza:</label>
+#         <input type="text" id="doctor_name" name="doctor_name" /><br><br>
         
-        <label for="date_of_visit">Podaj datę wizyty:</label>
-        <input type="date" id="date_of_visit" name="date_of_visit" /><br><br>
+#         <label for="date_of_visit">Podaj datę wizyty:</label>
+#         <input type="date" id="date_of_visit" name="date_of_visit" /><br><br>
 
-        <label for="visit_time">Podaj wiek zwierzęcia:</label>
-        <input type="time" id="visit_time" name="visit_time" /><br><br>
+#         <label for="visit_time">Podaj wiek zwierzęcia:</label>
+#         <input type="time" id="visit_time" name="visit_time" /><br><br>
 
-        <input type="submit" value="Zapisz nową wizytę" />
-    </form>
-    <p><a href="/">Powrót do listy wizyt</a></p>
-    """
+#         <input type="submit" value="Zapisz nową wizytę" />
+#     </form>
+#     <p><a href="/">Powrót do listy wizyt</a></p>
+#     """
 
-    return add_new_client_and_pet_html
+#     return add_new_client_and_pet_html
+
+# ###########################################################################################
 
 def render_visit_edit_form(visit_id):
     visit = fetch_visits_details(visit_id)
@@ -470,7 +480,7 @@ class MyHandler(SimpleHTTPRequestHandler):
             clients = fetch_clients()
 
             # Debugowanie: sprawdzamy, co zostało pobrane
-            print(f"Pobrane dane: {clients}")
+            # print(f"Pobrane dane: {clients}")
 
             # Ścieżka do szablonu HTML
             template_path = os.path.join(os.getcwd(), 'Templates', 'clients_list.html')
@@ -1067,12 +1077,14 @@ class MyHandler(SimpleHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(f"<p>Błąd: {e}".encode("utf-8"))
 
-        elif self.path.startswith("/adding_client_and_pet/"):
-            adding_client_and_pet_form_html = render_add_client_and_pet_form()
-            self.send_response(200)
-            self.send_header("Content-type", "text/html; charset=utf-8")
-            self.end_headers()
-            self.wfile.write(adding_client_and_pet_form_html.encode('utf-8'))
+# ###############       STARY FRAGMENT KODU     #####################################################
+
+        # elif self.path.startswith("/adding_client_and_pet/"):
+        #     adding_client_and_pet_form_html = render_add_client_and_pet_form()
+        #     self.send_response(200)
+        #     self.send_header("Content-type", "text/html; charset=utf-8")
+        #     self.end_headers()
+        #     self.wfile.write(adding_client_and_pet_form_html.encode('utf-8'))
 
 # ##################################################################################################
         # elif self.path == "/add_doctor/":
@@ -1089,18 +1101,22 @@ class MyHandler(SimpleHTTPRequestHandler):
         #         self.wfile.write(f"<p>Błąd: {e}".encode("utf-8"))
 
 
-        elif self.path == "/add_receptionist/":
-            try:
-                final_html_html = render_add_receptionist_form()
-                self.send_response(200)
-                self.send_header("Content-type", "text/html; charset=utf-8")
-                self.end_headers()
-                self.wfile.write(final_html_html.encode('utf-8'))
-            except Exception as e:
-                self.send_response(500)
-                self.send_header("Content-type", "text/html; charset=utf-8")
-                self.end_headers()
-                self.wfile.write(f"<p>Błąd: {e}".encode("utf-8"))
+# ################################################################################################################
+
+        # elif self.path == "/add_receptionist/":
+        #     try:
+        #         final_html_html = render_add_receptionist_form()
+        #         self.send_response(200)
+        #         self.send_header("Content-type", "text/html; charset=utf-8")
+        #         self.end_headers()
+        #         self.wfile.write(final_html_html.encode('utf-8'))
+        #     except Exception as e:
+        #         self.send_response(500)
+        #         self.send_header("Content-type", "text/html; charset=utf-8")
+        #         self.end_headers()
+        #         self.wfile.write(f"<p>Błąd: {e}".encode("utf-8"))
+
+# ############################################################################################################
 
 # ###################       USUWAMY KLIENTA - SOFT DELETE       ##########################
 
@@ -1846,23 +1862,26 @@ class MyHandler(SimpleHTTPRequestHandler):
 
 # #####################         DEF SEARCHING POST      ##########################
 
-    def handle_search_client_post(self, data):
-        first_name = data.get('client_first_name', '')
-        last_name = data.get('client_last_name', '')
+# #####################         STARY FRAGMENT KODU     ##########################
 
-        try:
-            find_client(first_name, last_name)
-            self.send_response(200)
-            self.send_header("Content-type", "text/html; charset=utf-8")
-            self.end_headers()
-            self.wfile.write("<p>Znaleziono klienta: {first_name} {last_name}</p>".encode('utf-8'))
-        except Exception as e:
-                # Wysłanie odpowiedzi HTTP w przypadku błędu
-            self.send_response(500)
-            self.send_header("Content-type", "text/html; charset=utf-8")
-            self.end_headers()
-            self.wfile.write(f"<p>Wystąpił błąd: {e}</p>".encode('utf-8'))
+    # def handle_search_client_post(self, data):
+    #     first_name = data.get('client_first_name', '')
+    #     last_name = data.get('client_last_name', '')
 
+    #     try:
+    #         find_client(first_name, last_name)
+    #         self.send_response(200)
+    #         self.send_header("Content-type", "text/html; charset=utf-8")
+    #         self.end_headers()
+    #         self.wfile.write("<p>Znaleziono klienta: {first_name} {last_name}</p>".encode('utf-8'))
+    #     except Exception as e:
+    #             # Wysłanie odpowiedzi HTTP w przypadku błędu
+    #         self.send_response(500)
+    #         self.send_header("Content-type", "text/html; charset=utf-8")
+    #         self.end_headers()
+    #         self.wfile.write(f"<p>Wystąpił błąd: {e}</p>".encode('utf-8'))
+
+# ###################################################################################
 
     def handle_search_doctor_post(self, data):
         first_name = data.get('doctor_first_name', '')
