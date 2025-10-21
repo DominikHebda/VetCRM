@@ -1,4 +1,4 @@
-from Database.operations_visits import fetch_visits, update_visit_in_db, add_next_visit, get_client_id, get_client_data_by_id, get_current_time, fetch_clients_to_visit, fetch_pets_to_visit, fetch_doctors_to_visit, add_visit, find_visit_by_id
+from Database.operations_visits import fetch_visits, find_visit, update_visit_in_db, add_next_visit, get_client_id, get_client_data_by_id, get_current_time, fetch_clients_to_visit, fetch_pets_to_visit, fetch_doctors_to_visit, add_visit, find_visit_by_id
 from Database.operations_client import fetch_clients, add_client, find_client, find_client_by_id, update_client, soft_delete_client
 import Database.operations_doctors
 print(dir(Database.operations_doctors))
@@ -212,6 +212,12 @@ def render_search_pet():
         search_pet_html = f.read()
 
     return search_pet_html
+
+def render_search_visit():
+    with open("templates/searching_visit.html", "r", encoding="utf-8") as f:
+        search_visit_html = f.read()
+
+    return search_visit_html
 
 def render_update_client():
     with open("templates/update_client", "r", encoding="utf-8") as f:
@@ -608,6 +614,14 @@ class MyHandler(SimpleHTTPRequestHandler):
             self.wfile.write(search_pet_html.encode('utf-8'))
 
 
+########################    WYSZUKIWANIE WIZYTY      ################
+
+        elif self.path == "/searching_visit/":
+            search_pet_html = render_search_visit()  
+            self.send_response(200)
+            self.send_header("Content-type", "text/html; charset=utf-8")
+            self.end_headers()
+            self.wfile.write(search_pet_html.encode('utf-8'))
 
 ########################    UAKTUALNIAMY DANE KLIENTA  ################
 
@@ -995,82 +1009,82 @@ class MyHandler(SimpleHTTPRequestHandler):
 ########################    DODAWANIE NOWEJ WIZYTY  ################
 
 
-        elif self.path.startswith("/add_next_visit/"):
-            try:
-                # Odczyt danych z formularza
-                content_length = int(self.headers['Content-Length'])
-                post_data = self.rfile.read(content_length).decode('utf-8')
+        # elif self.path.startswith("/add_next_visit/"):
+        #     try:
+        #         # Odczyt danych z formularza
+        #         content_length = int(self.headers['Content-Length'])
+        #         post_data = self.rfile.read(content_length).decode('utf-8')
                 
-                # Rozbicie danych
-                data = {item.split('=')[0]: urllib.parse.unquote(item.split('=')[1]) for item in post_data.split('&')}
-                print(f"Received POST data: {data}")  # Logowanie danych z formularza
+        #         # Rozbicie danych
+        #         data = {item.split('=')[0]: urllib.parse.unquote(item.split('=')[1]) for item in post_data.split('&')}
+        #         print(f"Received POST data: {data}")  # Logowanie danych z formularza
                 
-                first_name = data.get('client_first_name')
-                last_name = data.get('client_last_name')
-                phone = data.get('client_phone')
-                address = data.get('client_address')
-                pet_name = data.get('pet_name')
-                species = data.get('species')
-                breed = data.get('breed')
-                age = data.get('age')
-                doctor = data.get('doctor_name')
-                date_of_visit = data.get('date_of_visit')
-                visit_time = data.get('visit_time')
+        #         first_name = data.get('client_first_name')
+        #         last_name = data.get('client_last_name')
+        #         phone = data.get('client_phone')
+        #         address = data.get('client_address')
+        #         pet_name = data.get('pet_name')
+        #         species = data.get('species')
+        #         breed = data.get('breed')
+        #         age = data.get('age')
+        #         doctor = data.get('doctor_name')
+        #         date_of_visit = data.get('date_of_visit')
+        #         visit_time = data.get('visit_time')
 
-                breed = urllib.parse.unquote_plus(breed)
-                print(f"Breed after decoding: {breed}")
+        #         breed = urllib.parse.unquote_plus(breed)
+        #         print(f"Breed after decoding: {breed}")
 
-                if not first_name or not last_name or not phone or not address:
-                    print("Błąd: Nie wszystkie dane klienta zostały wprowadzone.")
-                    raise ValueError("Nie wszystkie dane klienta zostały wprowadzone.")
+        #         if not first_name or not last_name or not phone or not address:
+        #             print("Błąd: Nie wszystkie dane klienta zostały wprowadzone.")
+        #             raise ValueError("Nie wszystkie dane klienta zostały wprowadzone.")
                 
-                # Logowanie danych przed próbą dodania klienta
-                print(f"Próbuję znaleźć klienta o nazwisku: {last_name}")
+        #         # Logowanie danych przed próbą dodania klienta
+        #         print(f"Próbuję znaleźć klienta o nazwisku: {last_name}")
                 
-                client_id = get_client_id(last_name)
-                if client_id is None:
-                    print(f"Brak klienta o nazwisku {last_name} w bazie danych. Dodaję nowego klienta...")
-                    add_client(first_name, last_name, phone, address)
-                    client_id = get_client_id(last_name)
-                    print(f"Ponownie sprawdzam ID klienta: {client_id}")
+        #         client_id = get_client_id(last_name)
+        #         if client_id is None:
+        #             print(f"Brak klienta o nazwisku {last_name} w bazie danych. Dodaję nowego klienta...")
+        #             add_client(first_name, last_name, phone, address)
+        #             client_id = get_client_id(last_name)
+        #             print(f"Ponownie sprawdzam ID klienta: {client_id}")
                 
-                # Logowanie przed próbą dodania wizyty
-                print(f"Próbuję dodać wizytę: {first_name}, {last_name}, {pet_name}, {doctor}, {date_of_visit}, {visit_time}")
-                print(f"species: {species}, breed: {breed}, age: {age}")  # Logowanie wartości breed przed dodaniem do bazy
+        #         # Logowanie przed próbą dodania wizyty
+        #         print(f"Próbuję dodać wizytę: {first_name}, {last_name}, {pet_name}, {doctor}, {date_of_visit}, {visit_time}")
+        #         print(f"species: {species}, breed: {breed}, age: {age}")  # Logowanie wartości breed przed dodaniem do bazy
 
-                added = add_next_visit(
-                    current_time=get_current_time(),
-                    last_name_client=last_name,
-                    pet_name=pet_name,
-                    species=species,
-                    breed=breed,
-                    age=age,
-                    doctor=doctor,
-                    date_of_visit=date_of_visit,
-                    visit_time=visit_time,
-                    first_name=first_name,
-                    phone=phone,
-                    address=address
-                )
+        #         added = add_next_visit(
+        #             current_time=get_current_time(),
+        #             last_name_client=last_name,
+        #             pet_name=pet_name,
+        #             species=species,
+        #             breed=breed,
+        #             age=age,
+        #             doctor=doctor,
+        #             date_of_visit=date_of_visit,
+        #             visit_time=visit_time,
+        #             first_name=first_name,
+        #             phone=phone,
+        #             address=address
+        #         )
 
-                if added:
-                    self.send_response(200)
-                    self.send_header("Content-type", "text/html; charset=utf-8")
-                    self.end_headers()
-                    self.wfile.write("<p>Wizyta została zapisana!</p>".encode('utf-8'))
-                else:
-                    print("Wizyta nie została zapisana.")
-                    self.send_response(500)
-                    self.send_header("Content-type", "text/html; charset=utf-8")
-                    self.end_headers()
-                    self.wfile.write("<p>Wystąpił błąd podczas zapisywania wizyty.<p/>".encode('utf-8'))
+        #         if added:
+        #             self.send_response(200)
+        #             self.send_header("Content-type", "text/html; charset=utf-8")
+        #             self.end_headers()
+        #             self.wfile.write("<p>Wizyta została zapisana!</p>".encode('utf-8'))
+        #         else:
+        #             print("Wizyta nie została zapisana.")
+        #             self.send_response(500)
+        #             self.send_header("Content-type", "text/html; charset=utf-8")
+        #             self.end_headers()
+        #             self.wfile.write("<p>Wystąpił błąd podczas zapisywania wizyty.<p/>".encode('utf-8'))
 
-            except Exception as e:
-                print(f"Błąd podczas przetwarzania POST: {e}")
-                self.send_response(500)
-                self.send_header("Content-type", "text/html; charset=utf-8")
-                self.end_headers()
-                self.wfile.write(f"<p>Błąd: {e}</p>".encode('utf-8'))
+        #     except Exception as e:
+        #         print(f"Błąd podczas przetwarzania POST: {e}")
+        #         self.send_response(500)
+        #         self.send_header("Content-type", "text/html; charset=utf-8")
+        #         self.end_headers()
+        #         self.wfile.write(f"<p>Błąd: {e}</p>".encode('utf-8'))
 
 
 ###################     DODAJEMY NOWEGO KLIENTA      ##################################
@@ -1351,7 +1365,64 @@ class MyHandler(SimpleHTTPRequestHandler):
                 self.send_response(404)
                 self.send_header("Content-type", "text/html; charset=utf-8")
                 self.end_headers()
-                self.wfile.write("<p>Nie znaleziono klientów.</p>".encode('utf-8'))                
+                self.wfile.write("<p>Nie znaleziono klientów.</p>".encode('utf-8'))    
+
+
+###################     WYSZUKUJEMY WIZYTĘ    ##################################
+            
+        elif self.path == "/searching_visit/":
+            content_length = int(self.headers.get('Content-Length'))
+            post_data = self.rfile.read(content_length)
+            data = {item.split('=')[0]: urllib.parse.unquote_plus(item.split('=')[1]) for item in post_data.decode('utf-8').split('&')}
+
+            # Pobierz dane z formularza
+            first_name = data.get('first_name', '')
+            last_name = data.get('last_name', '')
+            pet_name = data.get('pet_name', '')
+
+            if not first_name or not last_name or not pet_name:
+                self.send_error(400, "Brak wymaganych danych (first_name, last_name, pet_name).")
+                return
+
+            visits = find_visit(first_name, last_name, pet_name)
+
+            if visits:
+                with open("templates/output_searching_visit.html", "r", encoding="utf-8") as file:
+                    html_content = file.read()
+
+                visit_rows = ""
+                for visit in visits:
+                    visit_id, pet_name, client_name, visit_date, visit_time, diagnosis = visit
+                    visit_row = f"""
+                        <tr>
+                            <td>{visit_id}</td>
+                            <td>{pet_name}</td>
+                            <td>{client_name}</td>
+                            <td>{visit_date}</td>
+                            <td>{visit_time}</td>
+                            <td>{diagnosis}</td>
+                            <td>
+                                <div class="btn-group">
+                                    <a href="/update_visit/{visit_id}" class="btn btn-edit">Edytuj</a>
+                                    <a href="/delete_visit/{visit_id}" class="btn btn-danger">Usuń</a>
+                                </div>
+                            </td>
+                        </tr>
+                    """
+                    visit_rows += visit_row
+
+                html_content = html_content.replace("{{ visit_rows }}", visit_rows)
+
+                self.send_response(200)
+                self.send_header("Content-type", "text/html; charset=utf-8")
+                self.end_headers()
+                self.wfile.write(html_content.encode('utf-8'))
+
+            else:
+                self.send_response(404)
+                self.send_header("Content-type", "text/html; charset=utf-8")
+                self.end_headers()
+                self.wfile.write("<p>Nie znaleziono wizyt dla podanych danych.</p>".encode('utf-8'))
 
 
 ###################     UAKTUALNIAMY DANE KLIENTA      ##################################

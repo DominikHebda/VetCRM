@@ -668,3 +668,33 @@ def add_visit(client_id, pet_id, doctor_id, visit_date, visit_time):
         if connection.is_connected():
             cursor.close()
             connection.close()
+
+def find_visit(first_name, last_name, pet_name):
+    connection = create_connection()
+    cursor = connection.cursor()
+
+    query = """
+    SELECT 
+        a.id,                                  -- ID wizyty
+        p.pet_name,                            -- Imię zwierzęcia
+        CONCAT(c.first_name, ' ', c.last_name) AS client_name,  -- Imię i nazwisko klienta
+        a.visit_date,                          -- Data wizyty
+        a.visit_time,                          -- Godzina wizyty
+        a.diagnosis                            -- Diagnoza
+    FROM appointments a
+    JOIN clients c ON a.client_id = c.id
+    JOIN pets p ON a.pet_id = p.id
+    WHERE c.first_name = %s
+      AND c.last_name = %s
+      AND p.pet_name = %s
+    ORDER BY a.visit_date DESC, a.visit_time DESC
+    """
+
+    cursor.execute(query, (first_name, last_name, pet_name))
+    results = cursor.fetchall()
+
+    cursor.close()
+    connection.close()
+
+    return results
+

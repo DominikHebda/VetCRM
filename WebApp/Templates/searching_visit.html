@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wyszukaj wizytę</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-4">
+        <h1>Wyszukaj konkretną wizytę</h1>
+        <form method="POST" action="/searching_visit/">
+            <div class="form-group">
+                <label for="first_name">Podaj imię klienta:</label>
+                <input type="text" id="first_name" name="first_name" class="form-control" required />
+            </div>
+
+            <div class="form-group">
+                <label for="last_name">Podaj nazwisko klienta:</label>
+                <input type="text" id="last_name" name="last_name" class="form-control" required />
+            </div>
+
+            <div class="form-group">
+                <label for="pet_name">Podaj imię zwierzęcia:</label>
+                <input type="text" id="pet_name" name="pet_name" class="form-control" required />
+            </div>
+
+            <button type="submit" class="btn btn-primary">Wyszukaj wizytę</button>
+        </form>
+    </div>
+</body>
+</html>
