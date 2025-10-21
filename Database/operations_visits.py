@@ -14,12 +14,15 @@ logging.basicConfig(level=logging.DEBUG)
 def get_current_time():
     return datetime.now()
 
+# ############      FUNKCJA OBECNIE NIE UŻYWANA     #######################
+
 def format_visit_time(visit_time):
     # Zakładam, że visit_time to obiekt datetime.timedelta
     hours = visit_time.seconds // 3600  # Pobieramy godziny
     minutes = (visit_time.seconds % 3600) // 60  # Pobieramy minuty
     return f"{hours:02}:{minutes:02}"  # Formatujemy jako HH:MM
 
+# ##########################################################################
 
 def fetch_visits():
     """Pobiera wszystkie wizyty z tabeli 'appointments'"""

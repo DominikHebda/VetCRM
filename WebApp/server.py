@@ -1,11 +1,10 @@
-from Database.operations_visits import fetch_visits, fetch_visits_details, update_visit_in_db, format_visit_time, add_next_visit, get_client_id, get_client_data_by_id, get_current_time, fetch_clients_to_visit, fetch_pets_to_visit, fetch_doctors_to_visit, add_visit, find_visit_by_id
+from Database.operations_visits import fetch_visits, update_visit_in_db, add_next_visit, get_client_id, get_client_data_by_id, get_current_time, fetch_clients_to_visit, fetch_pets_to_visit, fetch_doctors_to_visit, add_visit, find_visit_by_id
 from Database.operations_client import fetch_clients, add_client, find_client, find_client_by_id, update_client, soft_delete_client
 import Database.operations_doctors
 print(dir(Database.operations_doctors))
 print(">>> Ładuje się właściwy plik operations_doctors.py")
 
 from Database.operations_doctors import add_doctor, fetch_doctors, find_doctor_by_id, find_doctor, update_doctor, soft_delete_doctor
-from Database.operations_receptionist import add_receptionist
 from Database.operations_pets import fetch_pets, add_pet, fetch_clients_to_indications, find_pet, find_pet_by_id, update_pet, soft_delete_pet
 from http.server import SimpleHTTPRequestHandler, HTTPServer
 import urllib.parse
@@ -117,103 +116,6 @@ def render_home_page():
 
 # ########          FRAGMENT KODU DO SPRAWDZENIA                  ##########################################################################################3
 
-def render_visits_to_html():
-    visits = fetch_scheduled_visits()  # type: ignore
-    if not visits:
-        return "<p>Brak zaplanowanych wizyt.</p>"
-
-    visits_html = """
-    <div class="container">
-        <h2>Lista zaplanowanych wizyt</h2>
-        <a href="/add_next_visit/" class="btn btn-primary mb-3">Dodaj wizytę</a>
-        <table class="table table-striped table-bordered">
-            <thead class="thead-dark">
-                <tr>
-                    <th>ID</th>
-                    <th>Data utworzenia wizyty</th>
-                    <th>Nazwisko klienta</th>
-                    <th>Nazwa zwierzęcia</th>
-                    <th>Lekarz</th>
-                    <th>Data następnej wizyty</th>
-                    <th>Godzina wizyty</th>
-                    <th>Pokaż szczegóły</th>
-                    <th>Edytuj wizytę</th>
-                </tr>
-            </thead>
-            <tbody>
-    """
-
-    for visit in visits:
-        visit_id = visit[0]  
-        date = visit[1]  
-        client_last_name = visit[2] 
-        pet_name = visit[3]  
-        doctor_name = visit[4] 
-        date_of_visit = visit[5]  
-        visit_time = visit[6]  
-
-        # Formatowanie godziny wizyty
-        visit_time = format_visit_time(visit_time)
-
-        visit_details_link = f'<a href="/visit/{visit_id}" class="btn btn-info btn-sm">Pokaż szczegóły</a>'
-        visit_edit_link = f'<a href="/update/{visit_id}" class="btn btn-warning btn-sm">Edytuj wizytę</a>'
-
-        visits_html += f"""
-        <tr>
-            <td>{visit_id}</td>
-            <td>{date}</td>
-            <td>{client_last_name}</td>
-            <td>{pet_name}</td>
-            <td>{doctor_name}</td>
-            <td>{date_of_visit}</td>
-            <td>{visit_time}</td>
-            <td>{visit_details_link}</td>
-            <td>{visit_edit_link}</td>
-        </tr>
-        """
-    
-    visits_html += """
-            </tbody>
-        </table>
-    </div>
-    """
-
-    with open("templates/index.html", "r", encoding="utf-8") as f:
-        html_template = f.read()
-
-    final_html = html_template.replace("{{ visits_table }}", visits_html)
-
-    return final_html
-
-# ##############################################################################################################################3
-
-def render_visit_details(visit_id):
-    visit = fetch_visits_details(visit_id)
-    if not visit:
-        return "<p>Wizyta o podanym ID nie została znaleziona.</p>"
-
-    visit_id = visit[0]
-    date = visit[1]
-    client_last_name = visit[2]
-    pet_name = visit[3]
-    doctor_name = visit[4]
-    date_of_visit = visit[5]
-    visit_time = visit[6]
-
-    visit_details_html = f"""
-    <h1>Szczegóły wizyty</h1>
-    <p><strong>ID wizyty:</strong> {visit_id}</p>
-    <p><strong>Data utworzenia wizyty:</strong> {date}</p>
-    <p><strong>Nazwisko klienta:</strong> {client_last_name}</p>
-    <p><strong>Nazwa zwierzęcia:</strong> {pet_name}</p>
-    <p><strong>Lekarz:</strong> {doctor_name}</p>
-    <p><strong>Data następnej wizyty:</strong> {date_of_visit}</p>
-    <p><strong>Godzina wizyty:</strong> {visit_time}</p>
-    <p><a href="/update/{visit_id}">Edytuj wizytę</a></p>
-    <p><a href="/">Powrót do listy wizyt</a></p>
-    """
-
-    return visit_details_html
 
 
 def render_add_receptionist_form():
@@ -345,64 +247,7 @@ def render_update_pet(pet_data):
     return html
 
 
-def render_visit_edit_form(visit_id):
-    visit = fetch_visits_details(visit_id)
-    if not visit:
-        return "<p>Wizyta o podanym ID nie została znaleziona.</p>"
-
-    visit_id = visit[0]
-    date = visit[1]
-    client_last_name = visit[2]
-    pet_name = visit[3]
-    doctor_name = visit[4]
-    date_of_visit = visit[5]
-    visit_time = visit[10]
-
-    visit_edit_form_html = f"""
-    <h1>Edytuj wizytę</h1>
-    <form method="POST" action="/update/{visit_id}" enctype="application/x-www-form-urlencoded; charset=UTF-8">
-    <meta charset="UTF-8">
-        <label for="date">Data utworzenia wizyty:</label>
-        <input type="text" id="date" name="date" value="{date}" /><br><br>
-        
-        <label for="client_last_name">Nazwisko klienta:</label>
-        <input type="text" id="client_last_name" name="client_last_name" value="{client_last_name}" /><br><br>
-        
-        <label for="pet_name">Nazwa zwierzęcia:</label>
-        <input type="text" id="pet_name" name="pet_name" value="{pet_name}" /><br><br>
-        
-        <label for="doctor_name">Lekarz:</label>
-        <input type="text" id="doctor_name" name="doctor_name" value="{doctor_name}" /><br><br>
-        
-        <label for="date_of_visit">Data następnej wizyty:</label>
-        <input type="text" id="date_of_visit" name="date_of_visit" value="{date_of_visit}" /><br><br>
-
-        <label for="visit_time">Godzina wizyty:</label>
-        <input type="time" id="visit_time" name="visit_time" value="{visit_time}" /><br><br>
-
-        <input type="submit" value="Zaktualizuj wizytę" />
-    </form>
-    <p><a href="/">Powrót do listy wizyt</a></p>
-    """
-
-    return visit_edit_form_html
-
-def render_clients_list(self, template_content, clients):
-        """Generuje HTML z listą klientów, wstawiając dane do szablonu."""
-        clients_html = ""
-        for client in clients:
-            clients_html += f"""
-            <tr>
-                <td>{client['id']}</td>
-                <td>{client['first_name']}</td>
-                <td>{client['last_name']}</td>
-                <td>{client['phone']}</td>
-                <td>{client['address']}</td>
-            </tr>
-            """
-
-        # Wstawiamy dane do szablonu HTML
-        return template_content.replace("{% clients %}", clients_html)
+# ####################              do_GET              #####################################################
 
 
 class MyHandler(SimpleHTTPRequestHandler):
@@ -976,40 +821,6 @@ class MyHandler(SimpleHTTPRequestHandler):
 
 
 
-        elif self.path.startswith("/visit/"):
-            visit_id = self.path.split("/visit/")[1]
-            try:
-                visit_id = int(visit_id)
-                print(f"Requested visit ID: {visit_id}") 
-                visit_details_html = render_visit_details(visit_id)
-                self.send_response(200)
-                self.send_header("Content-type", "text/html; charset=utf-8")
-                self.end_headers()
-                self.wfile.write(visit_details_html.encode('utf-8'))
-            except ValueError:
-                print(f"Invalid visit ID format: {visit_id}") 
-                self.send_response(404)
-                self.send_header("Content-type", "text/html; charset=utf-8")
-                self.end_headers()
-                self.wfile.write("<p>Niepoprawne ID wizyty.</p>".encode('utf-8'))
-                
-
-########################    WYŚWIETLANIE LISTY WIZYT  ################
-
-
-        elif self.path.startswith("/visits_table/"):
-            try:
-                final_html = render_visits_to_html()
-                self.send_response(200)
-                self.send_header("Content-type", "text/html; charset+utf-8")
-                self.end_headers()
-                self.wfile.write(final_html.encode('utf-8'))
-            except Exception as e:
-                self.send_response(500)
-                self.send_header("Content-type", "text/html; charset=utf-8")
-                self.end_headers()
-                self.wfile.write(f"<p>Błąd: {e}".encode("utf-8"))
-
 ########################    DODAWANIE NOWEJ WIZYTY  ################
 
         elif self.path.startswith("/add_next_visit/"):
@@ -1099,6 +910,8 @@ class MyHandler(SimpleHTTPRequestHandler):
         else:
             super().do_GET()
 
+
+# #########################             do_POST             ###########################################
 
 
     def do_POST(self):
@@ -1315,6 +1128,8 @@ class MyHandler(SimpleHTTPRequestHandler):
             print(post_data)  # Sprawdzić, co jest przesyłane
             self.handle_add_pet_post(data)
 
+
+###############         DODAJEMY NOWĄ WIZYTĘ        ###########################
 
 
         elif self.path == "/adding_visit/":
@@ -1657,6 +1472,9 @@ class MyHandler(SimpleHTTPRequestHandler):
             data = {item.split('=')[0]: urllib.parse.unquote_plus(item.split('=')[1]) for item in post_data.split('&')}
             self.handle_add_receptionist_post(data)
 
+
+
+
 # ############################  DEF ADDING POST  ################################
 
 
@@ -1717,66 +1535,6 @@ class MyHandler(SimpleHTTPRequestHandler):
             self.wfile.write(f"<p>Wystąpił błąd: {e}<p>".encode('utf-8'))
 
 
-
-# #####################         DEF SEARCHING POST      ##########################
-
-
-    def handle_search_doctor_post(self, data):
-        first_name = data.get('doctor_first_name', '')
-        last_name = data.get('doctor_last_name', '')
-
-        try:
-            find_doctor(first_name, last_name)
-            self.send_response(200)
-            self.send_header("Content-type", "text/html; charset=utf-8")
-            self.end_headers()
-            self.wfile.write("<p>Znaleziono lekarza: {first_name} {last_name}</p>".encode('utf-8'))
-        except Exception as e:
-                # Wysłanie odpowiedzi HTTP w przypadku błędu
-            self.send_response(500)
-            self.send_header("Content-type", "text/html; charset=utf-8")
-            self.end_headers()
-            self.wfile.write(f"<p>Wystąpił błąd: {e}</p>".encode('utf-8'))
-
-
-    def handle_search_pet_post(self, data):
-        pet_name = data.get('pet_name', '')
-        species = data.get('species', '')
-
-        try:
-            find_pet(pet_name, species)
-            self.send_response(200)
-            self.send_header("Content-type", "text/html; charset=utf-8")
-            self.end_headers()
-            self.wfile.write("<p>Znaleziono zwierzę: {pet_name} {species}</p>".encode('utf-8'))
-        except Exception as e:
-                # Wysłanie odpowiedzi HTTP w przypadku błędu
-            self.send_response(500)
-            self.send_header("Content-type", "text/html; charset=utf-8")
-            self.end_headers()
-            self.wfile.write(f"<p>Wystąpił błąd: {e}</p>".encode('utf-8'))
-
-
-    def handle_add_receptionist_post(self, data):
-        first_name = data.get('receptionist_first_name', '')
-        last_name = data.get('receptionist_last_name', '')
-
-        try:
-            add_receptionist(first_name, last_name)
-
-            self.send_response(200)
-            self.send_header("Content-type", "text/html; charset=utf-8")
-            self.end_headers()
-            self.wfile.write("<p>Recepcjonistka została dodana.</p>".encode('utf-8'))
-
-        except Exception as e:
-            # Wysłanie odpowiedzi HTTP w przypadku błędu
-            self.send_response(500)
-            self.send_header("Content-type", "text/html; charset=utf-8")
-            self.end_headers()
-            self.wfile.write(f"<p>Wystąpił błąd: {e}</p>".encode('utf-8'))
-
-
 def run_server():
     PORT = 8000
     with HTTPServer(("", PORT), MyHandler) as httpd:
@@ -1785,196 +1543,4 @@ def run_server():
 
 if __name__ == "__main__":
     run_server()
-
-
-
-
-    
-
-# ###############       STARY FRAGMENT KODU     ###########################################################
-
-# def render_add_client_and_pet_form():
-#     with open("templates/adding_client_and_pet.html", "r", encoding="utf-8") as f:
-#         add_client_and_pet_html = f.read()
-
-#     return add_client_and_pet_html  
-
-# # Przenosimy metodę handle_add_doctor_post na poziom klasy
-    # def handle_add_doctor_post(self, data):
-    #     first_name = data.get('doctor_first_name', '')
-    #     last_name = data.get('doctor_last_name', '')
-    #     specialization = data.get('doctor_specialization', '')
-
-    #     try:
-    #         # Wywołanie funkcji do dodania lekarza
-    #         add_doctor(first_name, last_name, specialization)
-
-    #         # Wysłanie odpowiedzi HTTP
-    #         self.send_response(200)
-    #         self.send_header("Content-type", "text/html; charset=utf-8")
-    #         self.end_headers()
-    #         self.wfile.write("<p>Doktor został dodany do bazy danych!</p>".encode('utf-8'))
-    #     except Exception as e:
-    #         # Wysłanie odpowiedzi HTTP w przypadku błędu
-    #         self.send_response(500)
-    #         self.send_header("Content-type", "text/html; charset=utf-8")
-    #         self.end_headers()
-    #         self.wfile.write(f"<p>Wystąpił błąd: {e}</p>".encode('utf-8'))
-
-    # #####################         STARY FRAGMENT KODU     ##########################
-
-    # def handle_search_client_post(self, data):
-    #     first_name = data.get('client_first_name', '')
-    #     last_name = data.get('client_last_name', '')
-
-    #     try:
-    #         find_client(first_name, last_name)
-    #         self.send_response(200)
-    #         self.send_header("Content-type", "text/html; charset=utf-8")
-    #         self.end_headers()
-    #         self.wfile.write("<p>Znaleziono klienta: {first_name} {last_name}</p>".encode('utf-8'))
-    #     except Exception as e:
-    #             # Wysłanie odpowiedzi HTTP w przypadku błędu
-    #         self.send_response(500)
-    #         self.send_header("Content-type", "text/html; charset=utf-8")
-    #         self.end_headers()
-    #         self.wfile.write(f"<p>Wystąpił błąd: {e}</p>".encode('utf-8'))
-
-# ###################################################################################
-
-###################     DODAJEMY NOWEGO KLIENTA I JEGO ZWIERZĘ      ##################################
-
-        # elif self.path.startswith("/adding_client_and_pet/"):
-        #     try:
-        #         # Parsowanie danych z formularza
-        #         content_length = int(self.headers.get('Content-Length'))
-        #         post_data = self.rfile.read(content_length)
-        #         data = urllib.parse.parse_qs(post_data.decode('utf-8'))
-
-        #         first_name = data.get('client_first_name', [''])[0]
-        #         last_name = data.get('client_last_name', [''])[0]
-        #         phone = data.get('client_phone', [''])[0]
-        #         address = data.get('client_address', [''])[0]
-        #         pet_name = data.get('pet_name', [''])[0]
-        #         species = data.get('species', [''])[0]
-        #         breed = data.get('breed', [''])[0]
-        #         age = int(data.get('age', ['0'])[0])
-
-        #         # Dodanie klienta i zwierzęcia
-        #         added_client_and_pet = add_client_and_pet_s(
-        #             first_name=first_name,
-        #             last_name=last_name,
-        #             phone=phone,
-        #             address=address,
-        #             pet_name=pet_name,
-        #             species=species,
-        #             breed=breed,
-        #             age=age
-        #         )
-
-        #         if added_client_and_pet:
-        #             self.send_response(200)
-        #             self.send_header("Content-type", "text/html; charset=utf-8")
-        #             self.end_headers()
-        #             self.wfile.write("<p>Klient i zwierzę zostali zapisani</p>".encode('utf-8'))
-        #         else:
-        #             print("Klient i zwierzę nie zostali zapisani.")
-        #             self.send_response(500)
-        #             self.send_header("Content-type", "text/html; charset=utf-8")
-        #             self.end_headers()
-        #             self.wfile.write("<p>Wystąpił błąd podczas zapisywania klienta i zwierzęcia.</p>".encode('utf-8'))
-
-        #     except Exception as e:
-        #         print(f"Błąd podczas przetwarzania POST: {e}")
-        #         self.send_response(500)
-        #         self.send_header("Content-type", "text/html; charset=utf-8")
-        #         self.end_headers()
-        #         self.wfile.write(f"<p>Błąd: {e}</p>".encode('utf-8'))
-
-
-        # ###############       STARY FRAGMENT KODU     #####################################################
-
-        # elif self.path.startswith("/adding_client_and_pet/"):
-        #     adding_client_and_pet_form_html = render_add_client_and_pet_form()
-        #     self.send_response(200)
-        #     self.send_header("Content-type", "text/html; charset=utf-8")
-        #     self.end_headers()
-        #     self.wfile.write(adding_client_and_pet_form_html.encode('utf-8'))
-
-# ##################################################################################################
-        # elif self.path == "/add_doctor/":
-        #     try:
-        #         final_html = render_add_doctor()
-        #         self.send_response(200)
-        #         self.send_header("Content-type", "text/html; charset=utf-8")
-        #         self.end_headers()
-        #         self.wfile.write(final_html.encode("utf-8"))
-        #     except Exception as e:
-        #         self.send_response(500)
-        #         self.send_header("Content-type", "text/html; charset=utf-8")
-        #         self.end_headers()
-        #         self.wfile.write(f"<p>Błąd: {e}".encode("utf-8"))
-
-
-# ################################################################################################################
-
-        # elif self.path == "/add_receptionist/":
-        #     try:
-        #         final_html_html = render_add_receptionist_form()
-        #         self.send_response(200)
-        #         self.send_header("Content-type", "text/html; charset=utf-8")
-        #         self.end_headers()
-        #         self.wfile.write(final_html_html.encode('utf-8'))
-        #     except Exception as e:
-        #         self.send_response(500)
-        #         self.send_header("Content-type", "text/html; charset=utf-8")
-        #         self.end_headers()
-        #         self.wfile.write(f"<p>Błąd: {e}".encode("utf-8"))
-
-# ############################################################################################################
-
-
-# #################     STARY FRAGMENT KODU         ##################################################
-
-###################     DODAJEMY NOWEGO KLIENTA I JEGO ZWIERZĘ      ##################################
-
-# def render_add_new_client_and_pet():
-#     add_new_client_and_pet_html = """
-#     <h1>Dodaj nową wizytę</h1>
-#     <form method="POST" action="/add_new_client_and_pet/" enctype="application/x-www-form-urlencoded; charset=UTF-8">
-#     <meta charset="UTF-8">
-        
-#         <label for="client_first_name">Podaj imię klienta:</label>
-#         <input type="text" id="client_first_name" name="client_first_name" /><br><br>
-
-#         <label for="client_last_name">Podaj nazwisko klienta:</label>
-#         <input type="text" id="client_last_name" name="client_last_name" /><br><br>
-        
-#         <label for="client_phone">Podaj numer telefonu klienta:</label>
-#         <input type="text" id="client_phone" name="client_phone" /><br><br>
-        
-#         <label for="client_address">Podaj adres klienta:</label>
-#         <input type="text" id="client_address" name="client_address" /><br><br>
-        
-#         <label for="pet_name">Podaj nazwę zwierzęcia:</label>
-#         <input type="text" id="pet_name" name="pet_name" /><br><br>
-        
-#         <label for="doctor_name">Podaj nazwisko lekarza:</label>
-#         <input type="text" id="doctor_name" name="doctor_name" /><br><br>
-        
-#         <label for="date_of_visit">Podaj datę wizyty:</label>
-#         <input type="date" id="date_of_visit" name="date_of_visit" /><br><br>
-
-#         <label for="visit_time">Podaj wiek zwierzęcia:</label>
-#         <input type="time" id="visit_time" name="visit_time" /><br><br>
-
-#         <input type="submit" value="Zapisz nową wizytę" />
-#     </form>
-#     <p><a href="/">Powrót do listy wizyt</a></p>
-#     """
-
-#     return add_new_client_and_pet_html
-
-# ###########################################################################################
-
 

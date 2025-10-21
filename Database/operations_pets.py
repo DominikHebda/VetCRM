@@ -6,7 +6,7 @@ def fetch_pets():
     pets = []
     try:
         connection = create_connection()
-        print("Połączenie z bazą danych nawiązane.")
+        # print("Połączenie z bazą danych nawiązane.")
         if connection:
             cursor = connection.cursor()
             cursor.execute("""
@@ -16,7 +16,7 @@ def fetch_pets():
                 LEFT JOIN clients c ON p.client_id = c.id
             """)
             results = cursor.fetchall()
-            print("Dane pobrane z bazy:")
+            # print("Dane pobrane z bazy:")
             for row in results:
                 print(row)
                 pets.append(row)
@@ -172,6 +172,41 @@ def update_pet(pet_id, pet_name, species, breed, age, client_id):
             connection.close()
 
 
+
+def soft_delete_pet(pet_id):
+    """Oznacza zwierzę jako usunięte w bazie danych (soft delete)"""
+    try:
+        # Tworzymy połączenie z bazą danych
+        connection = create_connection()
+        if connection:
+            cursor = connection.cursor()
+
+            # Pobieramy bieżącą datę i godzinę
+            current_time = datetime.now()
+
+            # Zapytanie SQL do oznaczenia zwierzęcia jako usuniętego
+            query = """
+            UPDATE pets
+            SET soft_delete = %s
+            WHERE id = %s AND soft_delete IS NULL
+            """
+            cursor.execute(query, (current_time, pet_id))
+
+            connection.commit()  # Zatwierdzamy zmiany w bazie danych
+
+            # Sprawdzamy, czy zapytanie zaktualizowało jakikolwiek rekord
+            if cursor.rowcount > 0:
+                print(f"Zwierzę o ID {pet_id} został oznaczony jako usunięty.")
+            else:
+                print(f"Nie udało się oznaczyć lekarza o ID {pet_id} jako usuniętego.")
+            
+            cursor.close()
+            connection.close()
+
+    except Exception as e:
+        print(f"Błąd podczas oznaczania lekarza jako usuniętego: {e}")
+
+
 # def update_pet():
 #     pets = find_pet()
 #     if not pets:
@@ -222,36 +257,3 @@ def update_pet(pet_id, pet_name, species, breed, age, client_id):
 #         print(f"Błąd podczas aktualizowania danych zwierzęcia: {e}")
 
 # update_pet()
-
-def soft_delete_pet(pet_id):
-    """Oznacza zwierzę jako usunięte w bazie danych (soft delete)"""
-    try:
-        # Tworzymy połączenie z bazą danych
-        connection = create_connection()
-        if connection:
-            cursor = connection.cursor()
-
-            # Pobieramy bieżącą datę i godzinę
-            current_time = datetime.now()
-
-            # Zapytanie SQL do oznaczenia zwierzęcia jako usuniętego
-            query = """
-            UPDATE pets
-            SET soft_delete = %s
-            WHERE id = %s AND soft_delete IS NULL
-            """
-            cursor.execute(query, (current_time, pet_id))
-
-            connection.commit()  # Zatwierdzamy zmiany w bazie danych
-
-            # Sprawdzamy, czy zapytanie zaktualizowało jakikolwiek rekord
-            if cursor.rowcount > 0:
-                print(f"Zwierzę o ID {pet_id} został oznaczony jako usunięty.")
-            else:
-                print(f"Nie udało się oznaczyć lekarza o ID {pet_id} jako usuniętego.")
-            
-            cursor.close()
-            connection.close()
-
-    except Exception as e:
-        print(f"Błąd podczas oznaczania lekarza jako usuniętego: {e}")
