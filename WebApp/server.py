@@ -1,4 +1,4 @@
-from Database.operations_visits import fetch_visits, find_visit, update_visit_in_db, add_next_visit, get_client_id, get_client_data_by_id, get_current_time, fetch_clients_to_visit, fetch_pets_to_visit, fetch_doctors_to_visit, add_visit, find_visit_by_id
+from Database.operations_visits import fetch_visits, find_visit, fetch_pets_for_client, update_visit, add_next_visit, get_client_id, get_client_data_by_id, get_current_time, fetch_clients_to_visit, fetch_pets_to_visit, fetch_doctors_to_visit, add_visit, find_visit_by_id
 from Database.operations_client import fetch_clients, add_client, find_client, find_client_by_id, update_client, soft_delete_client
 import Database.operations_doctors
 print(dir(Database.operations_doctors))
@@ -114,15 +114,7 @@ def render_home_page():
 
 
 
-# ########          FRAGMENT KODU DO SPRAWDZENIA                  ##########################################################################################3
-
-
-
-def render_add_receptionist_form():
-    with open("templates/adding_receptionist.html", "r", encoding="utf-8") as f:
-        add_receptionist_form_html = f.read()
-
-    return add_receptionist_form_html
+# ########          FRAGMENT KODU DO SPRAWDZENIA                  ##########################################################################################
 
 def render_add_next_visit():
     with open("templates/adding_visit.html", "r", encoding="utf-8") as f:
@@ -767,33 +759,43 @@ class MyHandler(SimpleHTTPRequestHandler):
 #########################   UAKTUALNIAMY DANE WIZYTY    ##########################################
 
         elif self.path.startswith("/update_visit/"):
-            visit_id = self.path.split("/")[2]  # np. /update_visit/5
+            from urllib.parse import urlparse, parse_qs
 
+            parsed_url = urlparse(self.path)
+            path_parts = parsed_url.path.split("/")
+            visit_id = path_parts[2]
+
+            # Wczytaj dane wizyty
             visit = find_visit_by_id(visit_id)
 
             if visit:
-                # Rozpakowanie danych wizyty
+                # Rozpakuj dane
                 visit_data = {
                     "visit_id": visit[0],
-                    "created_at": visit[1],  # Możesz nie używać w formularzu
+                    "created_at": visit[1],
                     "client_id": visit[2],
                     "pet_id": visit[3],
                     "doctor_id": visit[4],
                     "visit_date": visit[5],
-                    "visit_time": visit[6],
-                    "diagnosis": visit[7]
+                    "visit_time": visit[6]
                 }
 
-                # Wczytanie danych do selectów
+                # Obsłuż ręczne nadpisanie client_id z query string
+                query_params = parse_qs(parsed_url.query)
+                if "client_id" in query_params:
+                    visit_data["client_id"] = int(query_params["client_id"][0])
+
+                # Pobierz dane do selectów
                 clients = fetch_clients()
-                pets = fetch_pets()
+                pets = fetch_pets_for_client(visit_data["client_id"])  # ważne!
                 doctors = fetch_doctors()
 
-                # Budowanie opcji <select>
+                # Buduj selecty
                 client_options = ""
                 for client in clients:
                     selected = "selected" if str(client[0]) == str(visit_data["client_id"]) else ""
-                    client_options += f'<option value="{client[0]}" {selected}>{client[1]}</option>\n'
+                    full_name = f"{client[1]} {client[2]}"
+                    client_options += f'<option value="{client[0]}" {selected}>{full_name}</option>\n'
 
                 pet_options = ""
                 for pet in pets:
@@ -803,35 +805,57 @@ class MyHandler(SimpleHTTPRequestHandler):
                 doctor_options = ""
                 for doctor in doctors:
                     selected = "selected" if str(doctor[0]) == str(visit_data["doctor_id"]) else ""
-                    doctor_options += f'<option value="{doctor[0]}" {selected}>{doctor[1]}</option>\n'
+                    full_name = f"{doctor[1]} {doctor[2]}"
+                    doctor_options += f'<option value="{doctor[0]}" {selected}>{full_name}</option>\n'
 
+                # Załaduj template i podmień dane
                 try:
                     template_path = os.path.join(os.path.dirname(__file__), 'Templates', 'update_visit.html')
 
-                    if os.path.exists(template_path):
-                        with open(template_path, "r", encoding="utf-8") as f:
-                            template = f.read()
+                    with open(template_path, "r", encoding="utf-8") as f:
+                        template = f.read()
 
-                        # Podstawianie danych do szablonu
-                        for key, value in visit_data.items():
-                            template = template.replace(f"{{{{ {key} }}}}", str(value))
+                    for key, value in visit_data.items():
+                        template = template.replace(f"{{{{ {key} }}}}", str(value))
 
-                        template = template.replace("{{ client_options }}", client_options)
-                        template = template.replace("{{ pet_options }}", pet_options)
-                        template = template.replace("{{ doctor_options }}", doctor_options)
+                    template = template.replace("{{ client_options }}", client_options)
+                    template = template.replace("{{ pet_options }}", pet_options)
+                    template = template.replace("{{ doctor_options }}", doctor_options)
 
-                        self.send_response(200)
-                        self.send_header("Content-type", "text/html; charset=utf-8")
-                        self.end_headers()
-                        self.wfile.write(template.encode("utf-8"))
+                    self.send_response(200)
+                    self.send_header("Content-type", "text/html; charset=utf-8")
+                    self.end_headers()
+                    self.wfile.write(template.encode("utf-8"))
 
-                    else:
-                        self.send_error(404, "Plik szablonu nie znaleziony")
                 except FileNotFoundError:
                     self.send_error(404, "Plik szablonu nie znaleziony")
             else:
                 self.send_error(404, "Wizyta nie znaleziona")
 
+
+#########################   WYŚWIETLAMY KOMUNIKAT O ZAKTUALIZOWANEJ WIZYCIE   ##########################################
+
+
+        elif self.path.startswith("/visit_updated/"):
+            from urllib.parse import urlparse
+            parsed_url = urlparse(self.path)
+            visit_id = parsed_url.path.split("/")[-1]
+
+            try:
+                template_path = os.path.join(os.path.dirname(__file__), 'Templates', 'visit_updated.html')
+                with open(template_path, "r", encoding="utf-8") as f:
+                    template = f.read()
+
+                # Podmień ID w linku powrotu
+                template = template.replace("{{ visit_id }}", visit_id)
+
+                self.send_response(200)
+                self.send_header("Content-type", "text/html; charset=utf-8")
+                self.end_headers()
+                self.wfile.write(template.encode("utf-8"))
+
+            except FileNotFoundError:
+                self.send_error(404, "Plik szablonu visit_updated.html nie znaleziony")
 
 
 
@@ -930,44 +954,7 @@ class MyHandler(SimpleHTTPRequestHandler):
 
     def do_POST(self):
 
-        if self.path.startswith("/update/"):
-            visit_id = self.path.split("/update/")[1]
-            try:
-                visit_id = int(visit_id)
-
-                content_length = int(self.headers['Content-Length'])
-                post_data = self.rfile.read(content_length).decode('utf-8')
-                data = {item.split('=')[0]: item.split('=')[1] for item in post_data.split('&')}
-
-                updated = update_visit_in_db(
-                    visit_id,
-                    data.get('date'),
-                    data.get('client_last_name'),
-                    data.get('pet_name'),
-                    data.get('doctor_name'),
-                    data.get('date_of_visit'),
-                    data.get('visit_time')
-                )
-
-                if updated:
-                    self.send_response(200)
-                    self.send_header("Content-type", "text/html; charset=utf-8")
-                    self.end_headers()
-                    self.wfile.write("<p>Wizyta została zaktualizowana!</p>".encode('utf-8'))
-                else:
-                    self.send_response(500)
-                    self.send_header("Content-type", "text/html; charset=utf-8")
-                    self.end_headers()
-                    self.wfile.write("<p>Wystąpił błąd podczas aktualizacji wizyty.</p>".encode('utf-8'))
-            except Exception as e:
-                self.send_response(500)
-                self.send_header("Content-type", "text/html; charset=utf-8")
-                self.end_headers()
-                self.wfile.write(f"<p>Błąd: {e}</p>".encode('utf-8'))
-
-
-
-        elif self.path.startswith("/visits_table/"):
+        if self.path.startswith("/visits_table/"):
             try:
                 # Odczyt danych z formularza
                 content_length = int(self.headers['Content-Length'])
@@ -1004,87 +991,6 @@ class MyHandler(SimpleHTTPRequestHandler):
 
 
 
-
-
-########################    DODAWANIE NOWEJ WIZYTY  ################
-
-
-        # elif self.path.startswith("/add_next_visit/"):
-        #     try:
-        #         # Odczyt danych z formularza
-        #         content_length = int(self.headers['Content-Length'])
-        #         post_data = self.rfile.read(content_length).decode('utf-8')
-                
-        #         # Rozbicie danych
-        #         data = {item.split('=')[0]: urllib.parse.unquote(item.split('=')[1]) for item in post_data.split('&')}
-        #         print(f"Received POST data: {data}")  # Logowanie danych z formularza
-                
-        #         first_name = data.get('client_first_name')
-        #         last_name = data.get('client_last_name')
-        #         phone = data.get('client_phone')
-        #         address = data.get('client_address')
-        #         pet_name = data.get('pet_name')
-        #         species = data.get('species')
-        #         breed = data.get('breed')
-        #         age = data.get('age')
-        #         doctor = data.get('doctor_name')
-        #         date_of_visit = data.get('date_of_visit')
-        #         visit_time = data.get('visit_time')
-
-        #         breed = urllib.parse.unquote_plus(breed)
-        #         print(f"Breed after decoding: {breed}")
-
-        #         if not first_name or not last_name or not phone or not address:
-        #             print("Błąd: Nie wszystkie dane klienta zostały wprowadzone.")
-        #             raise ValueError("Nie wszystkie dane klienta zostały wprowadzone.")
-                
-        #         # Logowanie danych przed próbą dodania klienta
-        #         print(f"Próbuję znaleźć klienta o nazwisku: {last_name}")
-                
-        #         client_id = get_client_id(last_name)
-        #         if client_id is None:
-        #             print(f"Brak klienta o nazwisku {last_name} w bazie danych. Dodaję nowego klienta...")
-        #             add_client(first_name, last_name, phone, address)
-        #             client_id = get_client_id(last_name)
-        #             print(f"Ponownie sprawdzam ID klienta: {client_id}")
-                
-        #         # Logowanie przed próbą dodania wizyty
-        #         print(f"Próbuję dodać wizytę: {first_name}, {last_name}, {pet_name}, {doctor}, {date_of_visit}, {visit_time}")
-        #         print(f"species: {species}, breed: {breed}, age: {age}")  # Logowanie wartości breed przed dodaniem do bazy
-
-        #         added = add_next_visit(
-        #             current_time=get_current_time(),
-        #             last_name_client=last_name,
-        #             pet_name=pet_name,
-        #             species=species,
-        #             breed=breed,
-        #             age=age,
-        #             doctor=doctor,
-        #             date_of_visit=date_of_visit,
-        #             visit_time=visit_time,
-        #             first_name=first_name,
-        #             phone=phone,
-        #             address=address
-        #         )
-
-        #         if added:
-        #             self.send_response(200)
-        #             self.send_header("Content-type", "text/html; charset=utf-8")
-        #             self.end_headers()
-        #             self.wfile.write("<p>Wizyta została zapisana!</p>".encode('utf-8'))
-        #         else:
-        #             print("Wizyta nie została zapisana.")
-        #             self.send_response(500)
-        #             self.send_header("Content-type", "text/html; charset=utf-8")
-        #             self.end_headers()
-        #             self.wfile.write("<p>Wystąpił błąd podczas zapisywania wizyty.<p/>".encode('utf-8'))
-
-        #     except Exception as e:
-        #         print(f"Błąd podczas przetwarzania POST: {e}")
-        #         self.send_response(500)
-        #         self.send_header("Content-type", "text/html; charset=utf-8")
-        #         self.end_headers()
-        #         self.wfile.write(f"<p>Błąd: {e}</p>".encode('utf-8'))
 
 
 ###################     DODAJEMY NOWEGO KLIENTA      ##################################
@@ -1535,14 +1441,34 @@ class MyHandler(SimpleHTTPRequestHandler):
                 # Jeżeli zwierzę nie zostało znalezione, zwróć błąd
                 self.send_error(404, "Nie znaleziono zwierzęcia.")
 
-# ####################      DODAWANIE RECEPCJONISTKI        ############################################
 
-        elif self.path == "/add_receptionist/":
+###################     UAKTUALNIAMY DANE WIZYTY     ##################################
+
+        elif self.path.startswith("/update_visit/"):
             content_length = int(self.headers['Content-Length'])
-            post_data = self.rfile.read(content_length).decode('utf-8')
-            data = {item.split('=')[0]: urllib.parse.unquote_plus(item.split('=')[1]) for item in post_data.split('&')}
-            self.handle_add_receptionist_post(data)
+            post_data = self.rfile.read(content_length)
+            data = parse_qs(post_data.decode('utf-8'))
 
+            try:
+                visit_id = self.path.split("/")[2]
+                client_id = data.get("client_id", [""])[0]
+                pet_id = data.get("pet_id", [""])[0]
+                doctor_id = data.get("doctor_id", [""])[0]
+                visit_date = data.get("visit_date", [""])[0]
+                visit_time = data.get("visit_time", [""])[0]
+
+                update_visit(visit_id, client_id, pet_id, doctor_id, visit_date, visit_time)
+
+                self.send_response(303)
+                self.send_header("Location", f"/visit_updated/{visit_id}")  # lub inna ścieżka
+                self.end_headers()
+ 
+            except Exception as e:
+                self.send_response(500)
+                self.send_header("Content-type", "text/html; charset=utf-8")
+                self.end_headers()
+                error_html = f"<h1>Błąd podczas zapisu wizyty</h1><pre>{e}</pre>"
+                self.wfile.write(error_html.encode("utf-8", errors="replace"))
 
 
 
@@ -1614,4 +1540,3 @@ def run_server():
 
 if __name__ == "__main__":
     run_server()
-
