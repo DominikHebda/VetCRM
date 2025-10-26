@@ -47,7 +47,7 @@ def fetch_visits():
             print("Dane pobrane z bazy:")  # Debugowanie
             for row in results:
                 # Zastosowanie funkcji do przekształcenia timedelty na godziny i minuty
-                visit_time_str = format_visit_time(row[6])  # row[6] to prawdopodobnie `visit_time`
+                visit_time_str = format_visit_time(row[6])  # row[6] to `visit_time`
 
                 print(f"Data wizyty: {row[5]}, Czas wizyty: {visit_time_str}, Diagnoza: {row[7]}")  # Debugowanie
 
@@ -99,262 +99,6 @@ def find_visit_by_id(visit_id):
         return None
 
 
-
-
-# fetch_scheduled_visits()
-
-# POBIERANIE ID DOKTORA
-def get_doctor_id(doctor_name):
-    try:
-        connection = create_connection()
-        if connection:
-            cursor = connection.cursor()
-            
-            query = "SELECT id FROM doctors WHERE last_name = %s"
-            cursor.execute(query, (doctor_name,))
-            result = cursor.fetchone()
-            
-            if result:
-                return result[0] 
-            else:
-                print(f"Brak lekarza o nazwisku {doctor_name} w bazie danych.")
-                return None 
-    except Exception as e:
-        print(f"Błąd podczas pobierania doctor_id: {e}")
-    finally:
-        if connection.is_connected():
-            cursor.close()
-            connection.close()
-    return None  
-
-# POBIERANIE ID KLIENTA
-def get_client_id(client_name):
-    connection = None
-    cursor = None
-    try:
-        connection = create_connection()
-        if connection:
-            cursor = connection.cursor()
-            print("Połączenie z bazą danych zostało nawiązane.")
-            
-            query = "SELECT id FROM clients WHERE last_name = %s"
-            cursor.execute(query, (client_name,))
-            result = cursor.fetchone()
-            
-            if result:
-                return result[0]  # Zwróć identyfikator klienta
-            else:
-                print(f"Brak klienta o nazwisku {client_name} w bazie danych.")
-                return None 
-
-    except Exception as e:
-        print(f"Błąd podczas pobierania client_id: {e}")
-        print("Szczegóły błędu:", traceback.format_exc())  # Wyświetlanie pełnego śladu błędu
-    finally:
-        # Bezpieczne zamknięcie kursora i połączenia
-        if cursor:
-            try:
-                cursor.close()
-            except Exception as e:
-                print(f"Błąd podczas zamykania kursora: {e}")
-        if connection:
-            try:
-                if connection.is_connected():
-                    connection.close()
-                    print("Połączenie z bazą danych zostało zamknięte.")
-            except Exception as e:
-                print(f"Błąd podczas zamykania połączenia z bazą danych: {e}")
-    
-    return None  # Jeśli nie udało się pobrać identyfikatora
-
-# POBIERAMYY DANE CLIENTA PO JEGO client_id
-def get_client_data_by_id(client_id):
-    """Pobierz dane klienta na podstawie jego ID."""
-    connection = None
-    cursor = None
-    try:
-        connection = create_connection()
-        cursor = connection.cursor()
-        query = "SELECT * FROM clients WHERE id = %s"
-        cursor.execute(query, (client_id,))
-        result = cursor.fetchone()
-
-        if result:
-            return result  # Zwróć dane klienta (tuple)
-        else:
-            print(f"Brak klienta o ID {client_id} w bazie danych.")
-            return None
-    except Exception as e:
-        print(f"Błąd podczas pobierania danych klienta: {e}")
-    finally:
-        if cursor:
-            cursor.close()
-        if connection and connection.is_connected():
-            connection.close()
-    return None
-
-
-# POBIERANIE ID ZWIERZĘCIA
-def get_pet_id(pet_name, client_id):
-    try:
-        connection = create_connection()
-        if connection:
-            cursor = connection.cursor()
-            
-            query = "SELECT id FROM pets WHERE pet_name = %s AND client_id = %s"
-            cursor.execute(query, (pet_name, client_id))
-            result = cursor.fetchone()
-            
-            if result:
-                return result[0]  # Zwróć ID zwierzęcia
-            else:
-                return None
-    except Exception as e:
-        print(f"Błąd podczas pobierania pet_id: {e}")
-    finally:
-        if connection.is_connected():
-            cursor.close()
-            connection.close()
-    return None
-
-
-
-# DODAWANIE NOWEJ/NASTĘPNEJ WIZYTY PRZEZ RECEPCJONISTKĘ
-def add_next_visit(current_time, last_name_client, pet_name, doctor, date_of_visit, visit_time, first_name, phone, address, species, breed, age):
-    print(f"species: {species}, breed: {breed}, age: {age}")
-
-    connection = None
-    cursor = None
-    try:
-        connection = create_connection()
-        if connection:
-            cursor = connection.cursor()
-            print("Połączenie z bazą danych zostało nawiązane.")
-            
-            # Sprawdzamy, czy klient istnieje
-            client_id = get_client_id(last_name_client)
-            if client_id is None:
-                print(f"Brak klienta o nazwisku {last_name_client} w bazie danych. Dodaję nowego klienta...")
-                add_client(first_name, last_name_client, phone, address)
-                client_id = get_client_id(last_name_client)
-                if client_id is None:
-                    print("Nie udało się znaleźć identyfikatora klienta. Wizyta nie zostanie zapisana.")
-                    return
-
-            doctor_id = get_doctor_id(doctor)
-            if doctor_id is None:
-                print(f"Nie udało się znaleźć identyfikatora lekarza {doctor}. Wizyta nie zostanie zapisana.")
-                return
-
-            # Dodajemy zwierzę do bazy danych, jeśli nie ma go jeszcze
-            pet_id = get_pet_id(pet_name, client_id)
-            if pet_id is None:
-                print(f"Brak zwierzęcia {pet_name} w bazie danych. Dodaję nowe zwierzę...")
-                add_pet(pet_name, species, breed, age, client_id)
-                pet_id = get_pet_id(pet_name, client_id)
-                if pet_id is None:
-                    print("Nie udało się znaleźć identyfikatora zwierzęcia. Wizyta nie zostanie zapisana.")
-                    return
-
-            # Formatowanie daty wizyty
-            date_of_visit = datetime.strptime(date_of_visit, "%Y-%m-%d").date()
-            formatted_date_of_visit = date_of_visit.strftime("%Y-%m-%d")
-
-            # Usuwamy mikrosekundy z current_time
-            current_time = current_time.replace(microsecond=0)
-            
-            # Przypisanie zapytania SQL do zapisania wizyty
-            query = """
-            INSERT INTO appointments_made (date, last_name_client, pet_name, doctor, date_of_visit, doctor_id, client_id, visit_time)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-            """
-            
-            print(f"Zapytanie: {query} z wartościami: {current_time}, {last_name_client}, {pet_name}, {doctor}, {formatted_date_of_visit}, {doctor_id}, {client_id}, {visit_time}")
-
-            cursor.execute(query, (current_time, last_name_client, pet_name, doctor, formatted_date_of_visit, doctor_id, client_id, visit_time))
-
-            # Zatwierdzanie wizyty
-            print(f"Zatwierdzam wizytę: {current_time}, {last_name_client}, {pet_name}, {doctor}, {visit_time}")
-            connection.commit()
-            print("Wizyta została zapisana.")
-            cursor.close()
-            connection.close()
-            return True
-            
-        else:
-            print("Brak połączenia z bazą danych.")
-            return "Wystąpił błąd w połączeniu z bazą danych", 500
-
-    except pymysql.MySQLError as e:
-        print(f"Błąd MySQL: {e}")
-        print("Szczegóły błędu:", traceback.format_exc())
-        return "Błąd w bazie danych", 500
-    except Exception as e:
-        print(f"Błąd podczas zapisywania wizyty: {e}")
-        print("Szczegóły błędu:", traceback.format_exc())
-        return "Wystąpił błąd podczas zapisywania wizyty", 500
-    finally:
-        if cursor:
-            cursor.close()
-        if connection:
-            try:
-                if connection.is_connected():
-                    connection.close()
-                    print("Połączenie z bazą danych zostało zamknięte.")
-            except Exception as e:
-                print(f"Błąd podczas zamykania połączenia z bazą danych: {e}")
-
-
-def add_visit_data():
-    last_name_client = input("Podaj nazwisko klienta: ")
-    pet_name = input("Podaj nazwę zwierzęcia: ")
-    doctor = input("Podaj nazwisko lekarza u którego odbędzie się ta wizyta: ")
-    date_of_visit = input("Podaj datę planowanej wizyty (RRRR-MM-DD): ")
-
-    # add_next_visit(datetime.now(), last_name_client, pet_name, doctor, date_of_visit)
-
-# add_visit_data()
-
-# DODAWANIE DIAGNOZY PRZEZ LEKARZA
-def add_diagnosis(pet_name, doctor, diagnosis, current_time, date_of_next_visit):
-    try:
-        connection = create_connection()
-        if connection:
-            cursor = connection.cursor()
-
-            doctor_id = get_doctor_id(doctor)
-            if doctor_id is None:
-                print("Nie udało się znaleźć identyfikatora lekarza. Wizyta nie zostanie zapisana.")
-                return
-            date_of_next_visit = datetime.strptime(date_of_next_visit, "%Y-%m-%d").date()
-            current_time = current_time or datetime.now()
-
-            query = """
-            INSERT INTO diagnoses (pet_name, doctor, diagnosis, diagnosis_date, date_of_next_visit, doctor_id)
-            VALUES (%s, %s, %s, %s, %s, %s)
-            """
-            cursor.execute(query, (pet_name, doctor, diagnosis, current_time, date_of_next_visit, doctor_id))
-            connection.commit()
-            print("Diagnoza została zapisana.")
-            cursor.close()
-            connection.close()
-    except Exception as e:
-        print(f"Błąd podczas zapisywania wizyty: {e}")
-    finally:
-        if connection.is_connected():
-            cursor.close()
-            connection.close()
-
-def add_diagnosis_data():
-    pet_name = input("Podaj nazwę zwierzęcia: ")
-    doctor = input("Podaj nazwisko lekarza: ")
-    diagnosis = input("Podaj diagnozę: ")
-    date_of_next_visit = input("Podaj datę następnej wizyty (RRRR-MM-DD): ")
-
-    # add_diagnosis(pet_name, doctor, diagnosis, datetime.now(), date_of_next_visit)
-
-# add_diagnosis_data()
-
 def update_visit(id, client_id, pet_id, doctor_id, visit_date, visit_time):
     
     try:# Połączenie z bazą
@@ -396,68 +140,6 @@ def update_visit(id, client_id, pet_id, doctor_id, visit_date, visit_time):
 
 
 
-# UAKTUALNIANIE DIAGNOZY
-def update_diagnosis():
-    try:
-        diagnosis_id = int(input("Podaj ID diagnozy której dane chcesz zaktualizować: "))
-        
-        connection = create_connection()
-        if connection:
-            cursor = connection.cursor()
-
-            cursor.execute("SELECT * FROM diagnoses WHERE iddiagnosis = %s", (diagnosis_id,))
-            result = cursor.fetchone()
-
-            if result: 
-                print(f"Znaleziono wizytę o podanym ID: {result}")
-                selected_diagnosis = result 
-
-                new_pet_name = input(f"Podaj nową nazwę zwierzęcia ({selected_diagnosis[1]}) (pozostaw puste, aby nie zmieniać): ")
-                new_doctor = input(f"Podaj nowe nazwisko lekarza ({selected_diagnosis[2]}) (pozostaw puste, aby nie zmieniać): ")
-                new_diagnosis = input(f"Podaj nową diagnozę ({selected_diagnosis[3]}) (pozostaw puste, aby nie zmieniać): ")
-
-                new_pet_name = new_pet_name or selected_diagnosis[1]
-                new_doctor = new_doctor or selected_diagnosis[2]
-                new_diagnosis = new_diagnosis or selected_diagnosis[3]
-
-                cursor.execute("""
-                UPDATE diagnoses
-                SET  pet_name = %s, doctor = %s, diagnosis = %s
-                WHERE iddiagnosis = %s
-                """, (new_pet_name, new_doctor, new_diagnosis, diagnosis_id))
-
-                connection.commit()
-                print(f"Dane wizyty o ID {diagnosis_id} zostały zaktualizowane.")
-            else:
-                print(f"Nie znaleziono wizyty o ID {diagnosis_id}.")
-            
-            cursor.close()
-            connection.close()
-    except ValueError:
-        print("Błąd: Podano nieprawidłowe ID.")
-    except Exception as e:
-        print(f"Błąd podczas aktualizowania danych wizyty: {e}")
-
-# update_diagnosis()
-
-# ##############
-def fetch_visits_details(visit_id):
-    print(f"Fetching details for visit ID: {visit_id}")
-    try:
-        connection = create_connection()
-        if connection:
-            cursor = connection.cursor()
-            query = "SELECT * FROM appointments WHERE idappointments = %s"
-            cursor.execute(query, (visit_id,))
-            result = cursor.fetchone()
-            return result
-    except Exception as e:
-        print(f"Błąd podczas pobierania idappointments: {e}")
-    finally: 
-        if connection.is_connected():
-            cursor.close()
-            connection.close()
-    return None
 
 def format_visit_time(visit_time):
     if isinstance(visit_time, timedelta):
@@ -596,3 +278,36 @@ def find_visit(first_name, last_name, pet_name):
     connection.close()
 
     return results
+
+
+def soft_delete_visit(visit_id):
+    """
+    Miękkie usunięcie wizyty (ustawia soft_delete na aktualną datę/czas).
+    """
+    try:
+        connection = create_connection()
+        cursor = connection.cursor()
+        cursor.execute("SET NAMES 'utf8mb4'")
+
+        current_time = datetime.now()
+
+        # Oznaczenie wizyty jako usuniętej
+        query = """
+            UPDATE appointments
+            SET soft_delete = NOW()
+            WHERE id = %s
+        """
+        cursor.execute(query, [visit_id])
+
+        connection.commit()
+        return True
+
+    except Exception as e:
+        print(f"Błąd podczas usuwania wizyty: {e}")
+        return False
+
+    finally:
+        if 'cursor' in locals():
+            cursor.close()
+        if 'connection' in locals() and connection.is_connected():
+            connection.close()

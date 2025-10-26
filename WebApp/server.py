@@ -1,4 +1,4 @@
-from Database.operations_visits import fetch_visits, find_visit, fetch_pets_for_client, update_visit, add_next_visit, get_client_id, get_client_data_by_id, get_current_time, fetch_clients_to_visit, fetch_pets_to_visit, fetch_doctors_to_visit, add_visit, find_visit_by_id
+from Database.operations_visits import fetch_visits, find_visit, fetch_pets_for_client, update_visit, fetch_clients_to_visit, fetch_pets_to_visit, fetch_doctors_to_visit, add_visit, find_visit_by_id, soft_delete_visit
 from Database.operations_client import fetch_clients, add_client, find_client, find_client_by_id, update_client, soft_delete_client
 import Database.operations_doctors
 print(dir(Database.operations_doctors))
@@ -7,8 +7,7 @@ print(">>> Ładuje się właściwy plik operations_doctors.py")
 from Database.operations_doctors import add_doctor, fetch_doctors, find_doctor_by_id, find_doctor, update_doctor, soft_delete_doctor
 from Database.operations_pets import fetch_pets, add_pet, fetch_clients_to_indications, find_pet, find_pet_by_id, update_pet, soft_delete_pet
 from http.server import SimpleHTTPRequestHandler, HTTPServer
-import urllib.parse
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, urlparse, unquote, unquote_plus
 import traceback  
 import logging
 import os
@@ -244,6 +243,12 @@ def render_update_pet(pet_data):
 
     return html
 
+def render_visit_deleted(visit_id):
+    with open("templates/visit_deleted.html", "r", encoding="utf-8") as f:
+        visit_deleted_html = f.read()
+
+    return visit_deleted_html
+
 
 # ####################              do_GET              #####################################################
 
@@ -251,6 +256,9 @@ def render_update_pet(pet_data):
 class MyHandler(SimpleHTTPRequestHandler):
     def do_GET(self):
         print(f"Requested path: {self.path}") 
+        print(globals().get('urlparse'))
+        print(f"urlparse w do_GET: {urlparse}")
+
 
 ########################    WYŚWIETLANIE STRONY POWITALNEJ  ################
 
@@ -759,7 +767,6 @@ class MyHandler(SimpleHTTPRequestHandler):
 #########################   UAKTUALNIAMY DANE WIZYTY    ##########################################
 
         elif self.path.startswith("/update_visit/"):
-            from urllib.parse import urlparse, parse_qs
 
             parsed_url = urlparse(self.path)
             path_parts = parsed_url.path.split("/")
@@ -837,7 +844,6 @@ class MyHandler(SimpleHTTPRequestHandler):
 
 
         elif self.path.startswith("/visit_updated/"):
-            from urllib.parse import urlparse
             parsed_url = urlparse(self.path)
             visit_id = parsed_url.path.split("/")[-1]
 
@@ -856,6 +862,21 @@ class MyHandler(SimpleHTTPRequestHandler):
 
             except FileNotFoundError:
                 self.send_error(404, "Plik szablonu visit_updated.html nie znaleziony")
+
+#########################   WYŚWIETLAMY KOMUNIKAT O USUNIĘCIU WIZYTY       ##########################################
+
+        elif self.path.startswith("/visit_deleted/"):
+            try:
+                visit_deleted_html = render_visit_deleted("visit_deleted.html")  # np. prosty szablon potwierdzenia
+                self.send_response(200)
+                self.send_header("Content-type", "text/html; charset=utf-8")
+                self.end_headers()
+                self.wfile.write(visit_deleted_html.encode("utf-8"))
+            except Exception as e:
+                self.send_response(500)
+                self.send_header("Content-type", "text/html; charset=utf-8")
+                self.end_headers()
+                self.wfile.write(f"<p>Błąd: {e}</p>".encode("utf-8"))
 
 
 
@@ -945,6 +966,27 @@ class MyHandler(SimpleHTTPRequestHandler):
                     error_message = f"Error deleting pet: {e}"
                     self.wfile.write(error_message.encode('utf-8'))
 
+
+# ###################       USUWAMY WIZYTĘ - SOFT DELETE       ##########################
+
+
+        elif self.path.startswith("/delete_visit/"):
+                visit_id = int(self.path.split('/')[-1])  
+
+                try:
+                    soft_delete_visit(visit_id)  # Funkcja, która oznacza wizytę jako usunięte
+                    self.send_response(303) 
+                    self.send_header('Location', '/visit_deleted/')  # Przekierowanie do listy wizyt
+                    self.end_headers()
+
+                except Exception as e:
+                    # Obsługa błędów, np. wizyta nie zostało znalezione
+                    self.send_response(500)
+                    self.send_header("Content-type", "text/html")
+                    self.end_headers()
+                    error_message = f"Error deleting visit: {e}"
+                    self.wfile.write(error_message.encode('utf-8'))
+
         else:
             super().do_GET()
 
@@ -961,7 +1003,7 @@ class MyHandler(SimpleHTTPRequestHandler):
                 post_data = self.rfile.read(content_length).decode('utf-8')
 
                 # Rozbicie danych na parametry
-                data = {item.split('=')[0]: urllib.parse.unquote(item.split('=')[1]) for item in post_data.split('&')}
+                data = {item.split('=')[0]: unquote(item.split('=')[1]) for item in post_data.split('&')}
                 print(f"Received POST data: {data}")  # Logowanie danych z formularza
 
                 # Przetwarzanie danych
@@ -1002,7 +1044,7 @@ class MyHandler(SimpleHTTPRequestHandler):
             post_data = post_data.decode('utf-8')
 
             # Tworzymy słownik z danymi
-            data = {item.split('=')[0]: urllib.parse.unquote_plus(item.split('=')[1]) for item in post_data.split('&')}
+            data = {item.split('=')[0]: unquote_plus(item.split('=')[1]) for item in post_data.split('&')}
 
             # Wywołanie metody obsługującej dodanie klienta
             self.handle_add_client_post(data)
@@ -1019,7 +1061,7 @@ class MyHandler(SimpleHTTPRequestHandler):
             print("RAW post_data:")
             print(post_data)
 
-            data = {item.split('=')[0]: urllib.parse.unquote_plus(item.split('=')[1]) for item in post_data.split('&')}
+            data = {item.split('=')[0]: unquote_plus(item.split('=')[1]) for item in post_data.split('&')}
             
             print("Parsed data:")
             print(data)
@@ -1040,7 +1082,7 @@ class MyHandler(SimpleHTTPRequestHandler):
             print("RAW post_data:")
             print(post_data)
 
-            data = {item.split('=')[0]: urllib.parse.unquote_plus(item.split('=')[1]) for item in post_data.split('&')}
+            data = {item.split('=')[0]: unquote_plus(item.split('=')[1]) for item in post_data.split('&')}
             
             print("Parsed data:")
             print(data)
@@ -1094,7 +1136,7 @@ class MyHandler(SimpleHTTPRequestHandler):
         elif self.path == "/searching_client/":
             content_length = int(self.headers.get('Content-Length'))
             post_data = self.rfile.read(content_length)
-            data = {item.split('=')[0]: urllib.parse.unquote_plus(item.split('=')[1]) for item in post_data.decode('utf-8').split('&')}
+            data = {item.split('=')[0]: unquote_plus(item.split('=')[1]) for item in post_data.decode('utf-8').split('&')}
 
             # Pobierz dane z formularza
             first_name = data.get('first_name', '')
@@ -1155,7 +1197,7 @@ class MyHandler(SimpleHTTPRequestHandler):
         elif self.path == "/searching_doctor/":
             content_length = int(self.headers.get('Content-Length'))
             post_data = self.rfile.read(content_length)
-            data = {item.split('=')[0]: urllib.parse.unquote_plus(item.split('=')[1]) for item in post_data.decode('utf-8').split('&')}
+            data = {item.split('=')[0]: unquote_plus(item.split('=')[1]) for item in post_data.decode('utf-8').split('&')}
 
             # Pobierz dane z formularza
             first_name = data.get('first_name', '')
@@ -1216,7 +1258,7 @@ class MyHandler(SimpleHTTPRequestHandler):
         elif self.path == "/searching_pet/":
             content_length = int(self.headers.get('Content-Length'))
             post_data = self.rfile.read(content_length)
-            data = {item.split('=')[0]: urllib.parse.unquote_plus(item.split('=')[1]) for item in post_data.decode('utf-8').split('&')}
+            data = {item.split('=')[0]: unquote_plus(item.split('=')[1]) for item in post_data.decode('utf-8').split('&')}
 
             # Pobierz dane z formularza
             pet_name = data.get('pet_name', '')
@@ -1279,7 +1321,7 @@ class MyHandler(SimpleHTTPRequestHandler):
         elif self.path == "/searching_visit/":
             content_length = int(self.headers.get('Content-Length'))
             post_data = self.rfile.read(content_length)
-            data = {item.split('=')[0]: urllib.parse.unquote_plus(item.split('=')[1]) for item in post_data.decode('utf-8').split('&')}
+            data = {item.split('=')[0]: unquote_plus(item.split('=')[1]) for item in post_data.decode('utf-8').split('&')}
 
             # Pobierz dane z formularza
             first_name = data.get('first_name', '')
@@ -1469,7 +1511,6 @@ class MyHandler(SimpleHTTPRequestHandler):
                 self.end_headers()
                 error_html = f"<h1>Błąd podczas zapisu wizyty</h1><pre>{e}</pre>"
                 self.wfile.write(error_html.encode("utf-8", errors="replace"))
-
 
 
 # ############################  DEF ADDING POST  ################################

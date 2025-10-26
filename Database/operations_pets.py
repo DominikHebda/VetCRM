@@ -198,7 +198,7 @@ def soft_delete_pet(pet_id):
             if cursor.rowcount > 0:
                 print(f"Zwierzę o ID {pet_id} został oznaczony jako usunięty.")
             else:
-                print(f"Nie udało się oznaczyć lekarza o ID {pet_id} jako usuniętego.")
+                print(f"Nie udało się oznaczyć zwierzęcia o ID {pet_id} jako usuniętego.")
             
             cursor.close()
             connection.close()
