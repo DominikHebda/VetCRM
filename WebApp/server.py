@@ -17,101 +17,10 @@ logging.basicConfig(level=logging.DEBUG)  # Ustawienie poziomu logowania na DEBU
 
 
 def render_home_page():
-    home_page_html = """
-    <!DOCTYPE html>
-    <html lang="pl">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Witamy w VetCRM</title>
-        <!-- Załączenie CSS Bootstrapa -->
-        <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
-        <style>
-            body {
-                background-color: #f7fdf4; /* Jasnozielone tło */
-            }
-            h1 {
-                color: #3c763d; /* Zielony kolor dla nagłówka */
-            }
-            p {
-                color: #5bc0de; /* Jasny niebieski, przyjazny kolor dla tekstu */
-            }
-            .btn {
-                font-size: 18px; /* Większy tekst na przyciskach */
-                width: 100%; /* Pełna szerokość przycisków */
-                margin-bottom: 15px; /* Odstęp między przyciskami */
-            }
-            .btn-primary {
-                background-color: #007b9e; /* Stonowany niebieski */
-                border-color: #007b9e;
-            }
-            .btn-primary:hover {
-                background-color: #00688b; /* Ciemniejszy niebieski przy hover */
-                border-color: #005a74;
-            }
-            .btn-success {
-                background-color: #218838; /* Intensywniejszy zielony dla Zwierząt */
-                border-color: #218838;
-            }
-            .btn-success:hover {
-                background-color: #1c7430; /* Ciemniejszy odcień zielonego przy hover */
-                border-color: #1a5b29;
-            }
-            .btn-warning {
-                background-color: #e67e22; /* Ciemniejszy, bardziej profesjonalny żółty dla Lekarzy */
-                border-color: #e67e22;
-            }
-            .btn-warning:hover {
-                background-color: #d35400; /* Ciemniejszy odcień żółtego przy hover */
-                border-color: #c0392b;
-            }
-            .btn-success.darker {
-                background-color: #2d6a4f; /* Ciemniejszy zielony dla Wizyt */
-                border-color: #2d6a4f;
-            }
-            .btn-success.darker:hover {
-                background-color: #245d42; /* Ciemniejszy odcień zielonego przy hover */
-                border-color: #1e4a35;
-            }
-            .container {
-                max-width: 600px; /* Szerokość kontenera */
-                padding-top: 50px;
-            }
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <h1 class="text-center">Witamy w VetCRM</h1>
-            <p class="text-center">Wybierz jedną z opcji, aby zarządzać przychodnią weterynaryjną:</p>
-            
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <a href="/clients_list/" class="btn btn-primary">Klienci</a>
-                </div>
-                <div class="col-md-6 mb-3">
-                    <a href="/pets_list/" class="btn btn-success">Zwierzęta</a>
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <a href="/doctors_list/" class="btn btn-warning">Lekarze</a>
-                </div>
-                <div class="col-md-6 mb-3">
-                    <a href="/visits_list/" class="btn btn-success darker">Wizyty</a>
-                </div>
-            </div>
-        </div>
-
-        <!-- Załączenie skryptów JS Bootstrapa -->
-        <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
-        <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-    </body>
-    </html>
-    """
+    with open("templates/index.html", "r", encoding="utf-8") as f:
+        home_page_html = f.read()
+    
     return home_page_html
-
-
 
 # ########          FRAGMENT KODU DO SPRAWDZENIA                  ##########################################################################################
 
@@ -249,6 +158,12 @@ def render_visit_deleted(visit_id):
 
     return visit_deleted_html
 
+def render_home_page():
+    with open("templates/index.html", "r", encoding="utf-8") as f:
+        home_page_html = f.read()
+    
+    return home_page_html
+
 
 # ####################              do_GET              #####################################################
 
@@ -262,13 +177,27 @@ class MyHandler(SimpleHTTPRequestHandler):
 
 ########################    WYŚWIETLANIE STRONY POWITALNEJ  ################
 
+       # ###################   STRONA GŁÓWNA (index.html)   ##########################
 
         if self.path == "/":
-            home_page_html = render_home_page()  # Wyświetl stronę powitalną
-            self.send_response(200)
-            self.send_header("Content-type", "text/html; charset=utf-8")
+            # Przekierowanie z "/" na "/index.html"
+            self.send_response(303)
+            self.send_header("Location", "/index.html")
             self.end_headers()
-            self.wfile.write(home_page_html.encode('utf-8'))
+
+        elif self.path in ("/index", "/index.html"):
+            try:
+                home_page_html = render_home_page()
+                self.send_response(200)
+                self.send_header("Content-type", "text/html; charset=utf-8")
+                self.end_headers()
+                self.wfile.write(home_page_html.encode("utf-8"))
+            except Exception as e:
+                self.send_response(500)
+                self.send_header("Content-type", "text/html; charset=utf-8")
+                self.end_headers()
+                self.wfile.write(f"<p>Błąd: {e}</p>".encode("utf-8"))
+
 
 
 #######################    LISTA KLIENTÓW  #######################
