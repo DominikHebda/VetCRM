@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Szczegóły klienta - VetCRM</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f7fdf4; }
+        h1 { color: #3c763d; }
+        table th, table td { vertical-align: middle; }
+        .container { max-width: 900px; padding-top: 30px; margin: 0 auto; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Szczegóły klienta</h1>
+        <div class="card mb-4">
+            <div class="card-body">
+                <p><strong>Imię:</strong> {{ client_first_name }}</p>
+                <p><strong>Nazwisko:</strong> {{ client_last_name }}</p>
+                <p><strong>Telefon:</strong> {{ client_phone }}</p>
+                <p><strong>Adres:</strong> {{ client_address }}</p>
+                <p><strong>Status:</strong> {{ client_status }}</p>
+            </div>
+        </div>
+
+        <h3>Wszystkie zwierzęta klienta</h3>
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nazwa zwierzęcia</th>
+                    <th>Gatunek</th>
+                    <th>Rasa</th>
+                    <th>Wiek</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{ pets_rows }}
+            </tbody>
+        </table>
+
+        <a href="/clients_list/" class="btn btn-primary mt-3">Powrót do listy klientów</a>
+    </div>
+</body>
+</html>

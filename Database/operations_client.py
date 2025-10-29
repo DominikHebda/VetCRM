@@ -203,3 +203,49 @@ def soft_delete_client(client_id):
 
     except Exception as e:
         print(f"Błąd podczas oznaczania klienta jako usuniętego: {e}")
+
+
+def find_client_to_details_by_id(client_id):
+    """Znajduje klienta po jego ID wraz z polem soft_delete."""
+    connection = create_connection()
+    if connection is None:
+        return None  # Jeśli połączenie się nie udało, zwracamy None
+
+    try:
+        cursor = connection.cursor()
+        
+        # Zapytanie SQL w celu znalezienia klienta po ID
+        query = """
+            SELECT id, first_name, last_name, phone, address, COALESCE(soft_delete, 0) AS soft_delete
+            FROM clients
+            WHERE id = %s
+        """
+        cursor.execute(query, (client_id,))
+        
+        # Pobranie jednego wyniku
+        client = cursor.fetchone()
+        
+        if not client:
+            return None
+
+        id_, first_name, last_name, phone, address, soft_delete = client
+
+        # 🔹 Normalizujemy soft_delete:
+        if soft_delete in (None, 0, '0', '', 'None'):
+            soft_delete_dt = None  # aktywny klient
+        else:
+            try:
+                soft_delete_dt = datetime.strptime(str(soft_delete), "%Y-%m-%d %H:%M:%S")
+            except ValueError:
+                # Jeśli z jakiegoś powodu nie da się sparsować — traktujemy jako aktywny
+                soft_delete_dt = None
+
+        return (id_, first_name, last_name, phone, address, soft_delete_dt)
+
+
+    except Exception as e:
+        print(f"Błąd przy wyszukiwaniu klienta: {e}")
+        return None
+    finally:
+        cursor.close()
+        connection.close()

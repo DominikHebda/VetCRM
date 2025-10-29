@@ -1,15 +1,16 @@
 from Database.operations_visits import fetch_visits, find_visit, fetch_pets_for_client, update_visit, fetch_clients_to_visit, fetch_pets_to_visit, fetch_doctors_to_visit, add_visit, find_visit_by_id, soft_delete_visit
-from Database.operations_client import fetch_clients, add_client, find_client, find_client_by_id, update_client, soft_delete_client
+from Database.operations_client import fetch_clients, add_client, find_client, find_client_by_id, update_client, soft_delete_client, find_client_to_details_by_id
 import Database.operations_doctors
 print(dir(Database.operations_doctors))
 print(">>> Ładuje się właściwy plik operations_doctors.py")
 
 from Database.operations_doctors import add_doctor, fetch_doctors, find_doctor_by_id, find_doctor, update_doctor, soft_delete_doctor
-from Database.operations_pets import fetch_pets, add_pet, fetch_clients_to_indications, find_pet, find_pet_by_id, update_pet, soft_delete_pet
+from Database.operations_pets import fetch_pets, add_pet, fetch_clients_to_indications, find_pet, find_pet_by_id, update_pet, soft_delete_pet, find_pets_by_client_id
 from WebApp.Templates.clients_view import render_clients_list_page
 from WebApp.Templates.doctors_view import render_doctors_list_page
 from WebApp.Templates.pets_view import render_pets_list_page
 from WebApp.Templates.visits_view import render_visits_list_page
+from WebApp.Templates.client_view import render_client_details_page
 from http.server import SimpleHTTPRequestHandler, HTTPServer
 from urllib.parse import parse_qs, urlparse, unquote, unquote_plus
 import traceback  
@@ -215,61 +216,19 @@ class MyHandler(SimpleHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(html.encode("utf-8"))
 
-        # elif self.path == "/clients_list/":
-        #     # Pobieramy klientów z bazy danych
-        #     clients = fetch_clients()
 
-        #     # Debugowanie: sprawdzamy, co zostało pobrane
-        #     # print(f"Pobrane dane: {clients}")
+#######################    SZCZEGÓŁY WYBRANEGO KLIENTA #######################
 
-        #     # Ścieżka do szablonu HTML
-        #     template_path = os.path.join(os.getcwd(), 'Templates', 'clients_list.html')
+        elif self.path.startswith("/client_details/"):
+            client_id = int(self.path.split("/")[-1])
+            client = find_client_to_details_by_id(client_id)  # Funkcja powinna zwracać tuple z klientem
+            pets = find_pets_by_client_id(client_id)  # Funkcja powinna zwracać listę tuplek zwierząt
+            html = render_client_details_page(client, pets)
 
-        #     try:
-        #         # Odczytujemy zawartość pliku HTML
-        #         with open(template_path, 'r', encoding='utf-8') as file:
-        #             template_content = file.read()
-
-        #         # Przygotowujemy dane do wstawienia w HTML
-        #         clients_html = ""
-        #         for client in clients:
-        #             client_id = client[0]  # ID klienta
-        #             deletion_date = client[5].strftime('%Y-%m-%d %H:%M:%S') if client[5] else "Klient aktywny"
-
-        #             # Tworzymy wiersz tabeli, uwzględniając datę usunięcia
-        #             client_row = f"""
-        #             <tr>
-        #                 <td>{client[0]}</td>
-        #                 <td>{client[1]}</td>
-        #                 <td>{client[2]}</td>
-        #                 <td>{client[3]}</td>
-        #                 <td>{client[4]}</td>
-        #                 <td>{deletion_date}</td>  <!-- Dodajemy datę usunięcia -->
-        #                 <td>
-        #                     <div class="btn-group">
-        #                         <a href="/update_client/{client_id}" class="btn btn-edit">Edytuj</a>
-        #                         <a href="/delete_client/{client_id}" class="btn btn-danger">Usuń</a>
-        #                     </div>
-        #                 </td>
-        #             </tr>
-        #             """
-        #             clients_html += client_row  # Dodajemy wiersz dla każdego klienta
-
-        #         # Zamieniamy placeholder {{ client_rows }} w szablonie na wygenerowany HTML z klientami
-        #         rendered_content = template_content.replace("{{ client_rows }}", clients_html)
-
-        #         # Wysyłamy odpowiedź HTTP
-        #         self.send_response(200)
-        #         self.send_header("Content-type", "text/html")
-        #         self.end_headers()
-        #         self.wfile.write(rendered_content.encode('utf-8'))
-
-        #     except Exception as e:
-        #         self.send_response(500)
-        #         self.send_header("Content-type", "text/html")
-        #         self.end_headers()
-        #         error_message = f"Error rendering page: {e}"
-        #         self.wfile.write(error_message.encode('utf-8'))
+            self.send_response(200)
+            self.send_header("Content-type", "text/html; charset=utf-8")
+            self.end_headers()
+            self.wfile.write(html.encode("utf-8"))
 
 
 #######################    LISTA LEKARZY  #######################
@@ -284,63 +243,6 @@ class MyHandler(SimpleHTTPRequestHandler):
             self.wfile.write(html.encode("utf-8"))
 
 
-        # elif self.path == "/doctors_list/":
-        #     # Pobieramy lekarzyklientów z bazy danych
-        #     doctors = fetch_doctors()
-
-        #     # Debugowanie: sprawdzamy, co zostało pobrane
-        #     print(f"Pobrane dane: {doctors}")
-
-        #     # Ścieżka do szablonu HTML
-        #     template_path = os.path.join(os.getcwd(), 'Templates', 'doctors_list.html')
-
-        #     try:
-        #         # Odczytujemy zawartość pliku HTML
-        #         with open(template_path, 'r', encoding='utf-8') as file:
-        #             template_content = file.read()
-
-        #         # Przygotowujemy dane do wstawienia w HTML
-        #         doctors_html = ""
-        #         for doctor in doctors:
-        #             doctor_id = doctor[0]  # ID lekarza
-        #             deletion_date = doctor[5].strftime('%Y-%m-%d %H:%M:%S') if doctor[5] else "Lekarz aktywny"
-
-        #             # Tworzymy wiersz tabeli, uwzględniając datę usunięcia
-        #             doctor_row = f"""
-        #             <tr>
-        #                 <td>{doctor[0]}</td>
-        #                 <td>{doctor[1]}</td>
-        #                 <td>{doctor[2]}</td>
-        #                 <td>{doctor[3]}</td>
-        #                 <td>{doctor[4]}</td>
-        #                 <td>{deletion_date}</td>  <!-- Dodajemy datę usunięcia -->
-        #                 <td>
-        #                     <div class="btn-group">
-        #                         <a href="/update_doctor/{doctor_id}" class="btn btn-edit">Edytuj</a>
-        #                         <a href="/delete_doctor/{doctor_id}" class="btn btn-danger">Usuń</a>
-        #                     </div>
-        #                 </td>
-        #             </tr>
-        #             """
-        #             doctors_html += doctor_row  # Dodajemy wiersz dla każdego lekarza
-
-        #         # Zamieniamy placeholder {{ doctors_rows }} w szablonie na wygenerowany HTML z klientami
-        #         rendered_content = template_content.replace("{{ doctor_rows }}", doctors_html)
-
-        #         # Wysyłamy odpowiedź HTTP
-        #         self.send_response(200)
-        #         self.send_header("Content-type", "text/html")
-        #         self.end_headers()
-        #         self.wfile.write(rendered_content.encode('utf-8'))
-
-        #     except Exception as e:
-        #         self.send_response(500)
-        #         self.send_header("Content-type", "text/html")
-        #         self.end_headers()
-        #         error_message = f"Error rendering page: {e}"
-        #         self.wfile.write(error_message.encode('utf-8'))
-
-
 #######################    LISTA ZWIERZĄT  #######################
 
         elif self.path.startswith("/pets_list/"):
@@ -351,55 +253,6 @@ class MyHandler(SimpleHTTPRequestHandler):
             self.send_header("Content-type", "text/html; charset=utf-8")
             self.end_headers()
             self.wfile.write(html.encode("utf-8"))
-
-
-        # elif self.path == "/pets_list/":
-        #     pets = fetch_pets()
-        #     print(f"Pobrane dane: {pets}")
-        #     template_path = os.path.join(os.getcwd(), 'Templates', 'pets_list.html')
-
-        #     try:
-        #         with open(template_path, 'r', encoding='utf-8') as file:
-        #             template_content = file.read()
-
-        #         pets_html = ""
-        #         for pet in pets:
-        #             pet_id = pet[0]
-        #             deletion_date = pet[5].strftime('%Y-%m-%d %H:%M:%S') if pet[5] else "Zwierzę aktywne"
-        #             owner_name = f"{pet[6]} {pet[7]}" if pet[6] and pet[7] else "Brak danych"
-
-        #             pet_row = f"""
-        #                 <tr>
-        #                     <td>{pet[0]}</td>
-        #                     <td>{pet[1]}</td>
-        #                     <td>{pet[2]}</td>
-        #                     <td>{pet[3]}</td>
-        #                     <td>{pet[4]}</td>
-        #                     <td>{deletion_date}</td>
-        #                     <td>{owner_name}</td>
-        #                     <td>
-        #                         <div class="btn-group">
-        #                             <a href="/update_pet/{pet_id}" class="btn btn-edit">Edytuj</a>
-        #                             <a href="/delete_pet/{pet_id}" class="btn btn-danger">Usuń</a>
-        #                         </div>
-        #                     </td>
-        #                 </tr>
-        #             """
-        #             pets_html += pet_row
-
-        #         rendered_content = template_content.replace("{{ pets_rows }}", pets_html)
-        #         self.send_response(200)
-        #         self.send_header("Content-type", "text/html")
-        #         self.end_headers()
-        #         self.wfile.write(rendered_content.encode('utf-8'))
-
-        #     except Exception as e:
-        #         self.send_response(500)
-        #         self.send_header("Content-type", "text/html")
-        #         self.end_headers()
-        #         error_message = f"Error rendering page: {e}"
-        #         self.wfile.write(error_message.encode('utf-8'))
-
 
 
 #######################    LISTA WIZYT  #######################
@@ -413,69 +266,6 @@ class MyHandler(SimpleHTTPRequestHandler):
             self.send_header("Content-type", "text/html; charset=utf-8")
             self.end_headers()
             self.wfile.write(html.encode("utf-8"))
-
-
-        # elif self.path == "/visits_list/":
-        #     # Pobieramy listę wizyt z bazy danych
-        #     visits = fetch_visits()
-
-        #     # Debugowanie: sprawdzamy, co zostało pobrane
-        #     print(f"Pobrane dane: {visits}")
-
-        #     # Ścieżka do szablonu HTML
-        #     template_path = os.path.join(os.getcwd(), 'Templates', 'visits_list.html')
-
-        #     try:
-        #         # Odczytujemy zawartość pliku HTML
-        #         with open(template_path, 'r', encoding='utf-8') as file:
-        #             template_content = file.read()
-
-        #         # Przygotowujemy dane do wstawienia w HTML
-        #         visits_html = ""
-        #         for visit in visits:
-        #             visit_id = visit['id']  # ID klienta
-        #             diagnosis = visit['diagnosis'] if visit['diagnosis'] not in [None, ""] else "brak diagnozy"
-
-        #             deletion_date = visit['soft_delete'].strftime('%Y-%m-%d %H:%M:%S') if visit['soft_delete'] else "Wizyta aktualna"
-
-        #             # Tworzymy wiersz tabeli, uwzględniając datę usunięcia
-        #             visit_row = f"""
-        #             <tr>
-        #                 <td>{visit_id}</td>
-        #                 <td>{visit['created_at']}</td>
-        #                 <td>{visit['client_full_name']}</td>
-        #                 <td>{visit['pet_name']}</td>
-        #                 <td>{visit['doctor_full_name']}</td>
-        #                 <td>{visit['visit_date']}</td>
-        #                 <td>{visit['visit_time']}</td>
-        #                 <td>{diagnosis}</td>
-        #                 <td>{deletion_date}</td>  <!-- Dodajemy datę usunięcia -->
-        #                 <td>
-        #                     <div class="btn-group">
-        #                         <a href="/update_visit/{visit_id}" class="btn btn-edit">Edytuj</a>
-        #                         <a href="/delete_visit/{visit_id}" class="btn btn-danger">Usuń</a>
-        #                     </div>
-        #                 </td>
-        #             </tr>
-        #             """
-        #             visits_html += visit_row  # Dodajemy wiersz dla każdej wizyty
-
-        #         # Zamieniamy placeholder {{ visit_row }} w szablonie na wygenerowany HTML z wizyty
-        #         rendered_content = template_content.replace("{{ visit_rows }}", visits_html)
-
-        #         # Wysyłamy odpowiedź HTTP
-        #         self.send_response(200)
-        #         self.send_header("Content-type", "text/html")
-        #         self.end_headers()
-        #         self.wfile.write(rendered_content.encode('utf-8'))
-
-        #     except Exception as e:
-        #         print("Błąd podczas renderowania strony:")
-        #         traceback.print_exc()  # To wyświetli pełny stos błędów
-        #         self.send_response(500)
-        #         self.send_header("Content-type", "text/html; charset=utf-8")
-        #         self.end_headers()
-        #         self.wfile.write(f"<h1>Błąd renderowania strony:</h1><pre>{traceback.format_exc()}</pre>".encode("utf-8"))
 
 
 ########################    DODAWANIE KLIENTA  ################

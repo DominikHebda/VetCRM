@@ -206,54 +206,25 @@ def soft_delete_pet(pet_id):
     except Exception as e:
         print(f"Błąd podczas oznaczania lekarza jako usuniętego: {e}")
 
+def find_pets_by_client_id(client_id):
+    """
+    Pobiera wszystkie zwierzęta należące do klienta o danym client_id z bazy MySQL.
+    Zwraca listę krotek: (id, pet_name, species, breed, age, soft_delete)
+    """
+    # Połączenie z bazą danych – podmień parametry na swoje
+    connection = create_connection()
+    cursor = connection.cursor()
 
-# def update_pet():
-#     pets = find_pet()
-#     if not pets:
-#         return
+    query = """
+    SELECT id, pet_name, species, breed, age, soft_delete
+    FROM pets
+    WHERE client_id = %s
+    ORDER BY id
+    """
     
-#     try:
-#         pet_id = int(input("Podaj ID zwierzęcia, którego dane chcesz uaktualnić: "))
-#         selected_pet = None
-#         for pet in pets:
-#             if pet[0] == pet_id:
-#                 selected_pet = pet
-#                 break
-#         if not selected_pet:
-#             print("Nie znaleziono zwierzęcia o podanym ID.")
-#             return
-#         print(f"Wybrano zwierzę: {selected_pet[1]} {selected_pet[2]} (ID: {selected_pet[0]})")
+    cursor.execute(query, (client_id,))
+    pets = cursor.fetchall()
 
-#         new_pet_name = input(f"Podaj nową nazwę zwierzęcia ({selected_pet[1]}) (pozostaw puste, aby nie zmieniać): ")
-#         new_species = input(f"Podaj nowy gatunek zwierzęcia: ({selected_pet[2]}) (pozostaw puste, aby nie zmieniać): ")
-#         new_breed = input(f"Podaj nową rasę zwierzęcia: ({selected_pet[3]}) (pozostaw puste, aby nie zmieniać): ")
-#         new_age = input(f"Podaj nowy wiek zwierzęcia: ({selected_pet[4]}) (pozostaw puste, aby nie zmieniać): ")
-
-#         # Jeśli użytkownik nie podał nowych danych, pozostawiamy stare wartości
-#         new_pet_name = new_pet_name or selected_pet[1]
-#         new_species = new_species or selected_pet[2]
-#         new_breed = new_breed or selected_pet[3]
-#         new_age = new_age or selected_pet[4]
-
-#         # Wykonujemy aktualizację
-#         connection = create_connection()
-#         cursor = connection.cursor()
-
-#         query = """
-#         UPDATE pets
-#         SET pet_name = %s, species = %s, breed = %s, age = %s
-#         WHERE idpet = %s
-#         """
-#         cursor.execute(query, (new_pet_name, new_species, new_breed, new_age, pet_id))
-#         connection.commit()
-#         print(f"Dane zwierzęcia {selected_pet[1]} {selected_pet[2]} zostały zaktualizowane.")
-
-#         cursor.close()
-#         connection.close()
-
-#     except ValueError:
-#         print("Błąd: Podano nieprawidłowe ID.")
-#     except Exception as e:
-#         print(f"Błąd podczas aktualizowania danych zwierzęcia: {e}")
-
-# update_pet()
+    cursor.close()
+    connection.close()
+    return pets
