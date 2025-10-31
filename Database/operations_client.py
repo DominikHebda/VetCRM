@@ -249,3 +249,5 @@ def find_client_to_details_by_id(client_id):
     finally:
         cursor.close()
         connection.close()
+
+    

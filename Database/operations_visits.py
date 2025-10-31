@@ -311,3 +311,40 @@ def soft_delete_visit(visit_id):
             cursor.close()
         if 'connection' in locals() and connection.is_connected():
             connection.close()
+
+
+def find_visits_by_client_id(client_id):
+    """
+    Zwraca listę wizyt (appointments) danego klienta.
+    Każdy rekord: (pet_name, visit_date, visit_time, doctor_full_name, diagnosis)
+    """
+    connection = create_connection()
+    if connection is None:
+        return []
+
+    try:
+        cursor = connection.cursor()
+        query = """
+            SELECT 
+                p.pet_name AS pet_name,
+                a.visit_date,
+                a.visit_time,
+                CONCAT(d.first_name, ' ', d.last_name) AS doctor_full_name,
+                a.diagnosis
+            FROM appointments a
+            JOIN pets p ON a.pet_id = p.id
+            JOIN doctors d ON a.doctor_id = d.id
+            WHERE a.client_id = %s
+              AND (a.soft_delete IS NULL OR a.soft_delete = 0)
+            ORDER BY a.visit_date DESC, a.visit_time DESC
+        """
+        cursor.execute(query, (client_id,))
+        visits = cursor.fetchall()
+        return visits
+
+    except Exception as e:
+        print(f"Błąd przy pobieraniu wizyt klienta: {e}")
+        return []
+    finally:
+        cursor.close()
+        connection.close()
