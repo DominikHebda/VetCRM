@@ -221,9 +221,10 @@ class MyHandler(SimpleHTTPRequestHandler):
 
         elif self.path.startswith("/client_details/"):
             client_id = int(self.path.split("/")[-1])
-            client = find_client_to_details_by_id(client_id)  # Funkcja powinna zwracać tuple z klientem
-            pets = find_pets_by_client_id(client_id)  # Funkcja powinna zwracać listę tuplek zwierząt
-            html = render_client_details_page(client, pets)
+            client = find_client_to_details_by_id(client_id)  
+            pets = find_pets_by_client_id(client_id)  
+            visits = find_visits_by_client_id(client_id)  
+            html = render_client_details_page(client, pets, visits)
 
             self.send_response(200)
             self.send_header("Content-type", "text/html; charset=utf-8")
