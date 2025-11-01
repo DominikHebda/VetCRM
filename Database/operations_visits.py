@@ -348,3 +348,39 @@ def find_visits_by_client_id(client_id):
     finally:
         cursor.close()
         connection.close()
+
+def find_visits_by_doctor_id(doctor_id):
+    """
+    Zwraca listę wizyt danego lekarza.
+    Każdy rekord: (pet_name, client_full_name, visit_date, visit_time, diagnosis)
+    """
+    connection = create_connection()
+    if connection is None:
+        return []
+
+    try:
+        cursor = connection.cursor()
+        query = """
+            SELECT 
+                p.pet_name AS pet_name,
+                CONCAT(c.first_name, ' ', c.last_name) AS client_full_name,
+                a.visit_date,
+                a.visit_time,
+                a.diagnosis
+            FROM appointments a
+            JOIN pets p ON a.pet_id = p.id
+            JOIN clients c ON a.client_id = c.id
+            WHERE a.doctor_id = %s
+              AND (a.soft_delete IS NULL OR a.soft_delete = 0)
+            ORDER BY a.visit_date DESC, a.visit_time DESC
+        """
+        cursor.execute(query, (doctor_id,))
+        visits = cursor.fetchall()
+        return visits
+
+    except Exception as e:
+        print(f"Błąd przy pobieraniu wizyt lekarza: {e}")
+        return []
+    finally:
+        cursor.close()
+        connection.close()

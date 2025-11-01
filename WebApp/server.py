@@ -1,16 +1,17 @@
-from Database.operations_visits import fetch_visits, find_visit, fetch_pets_for_client, update_visit, fetch_clients_to_visit, fetch_pets_to_visit, fetch_doctors_to_visit, add_visit, find_visit_by_id, soft_delete_visit, find_visits_by_client_id
+from Database.operations_visits import fetch_visits, find_visit, fetch_pets_for_client, update_visit, fetch_clients_to_visit, fetch_pets_to_visit, fetch_doctors_to_visit, add_visit, find_visit_by_id, soft_delete_visit, find_visits_by_client_id, find_visits_by_doctor_id
 from Database.operations_client import fetch_clients, add_client, find_client, find_client_by_id, update_client, soft_delete_client, find_client_to_details_by_id
 import Database.operations_doctors
 print(dir(Database.operations_doctors))
 print(">>> Ładuje się właściwy plik operations_doctors.py")
 
-from Database.operations_doctors import add_doctor, fetch_doctors, find_doctor_by_id, find_doctor, update_doctor, soft_delete_doctor
+from Database.operations_doctors import add_doctor, fetch_doctors, find_doctor_by_id, find_doctor, update_doctor, soft_delete_doctor, find_doctor_to_details_by_id
 from Database.operations_pets import fetch_pets, add_pet, fetch_clients_to_indications, find_pet, find_pet_by_id, update_pet, soft_delete_pet, find_pets_by_client_id
 from WebApp.Templates.clients_view import render_clients_list_page
+from WebApp.Templates.client_view import render_client_details_page
 from WebApp.Templates.doctors_view import render_doctors_list_page
+from WebApp.Templates.doctor_view import render_doctor_details_page
 from WebApp.Templates.pets_view import render_pets_list_page
 from WebApp.Templates.visits_view import render_visits_list_page
-from WebApp.Templates.client_view import render_client_details_page
 from http.server import SimpleHTTPRequestHandler, HTTPServer
 from urllib.parse import parse_qs, urlparse, unquote, unquote_plus
 import traceback  
@@ -237,6 +238,21 @@ class MyHandler(SimpleHTTPRequestHandler):
         elif self.path.startswith("/doctors_list/"):
             doctors = fetch_doctors()
             html = render_doctors_list_page(doctors)
+
+            self.send_response(200)
+            self.send_header("Content-type", "text/html; charset=utf-8")
+            self.end_headers()
+            self.wfile.write(html.encode("utf-8"))
+
+
+#######################    SZCZEGÓŁY WYBRANEGO LEKARZA #######################
+
+
+        elif self.path.startswith("/doctor_details/"):
+            doctor_id = int(self.path.split("/")[-1])
+            doctor = find_doctor_to_details_by_id(doctor_id)
+            visits = find_visits_by_doctor_id(doctor_id)
+            html = render_doctor_details_page(doctor, visits)
 
             self.send_response(200)
             self.send_header("Content-type", "text/html; charset=utf-8")
