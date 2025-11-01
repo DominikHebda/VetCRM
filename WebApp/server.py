@@ -1,4 +1,4 @@
-from Database.operations_visits import fetch_visits, find_visit, fetch_pets_for_client, update_visit, fetch_clients_to_visit, fetch_pets_to_visit, fetch_doctors_to_visit, add_visit, find_visit_by_id, soft_delete_visit, find_visits_by_client_id, find_visits_by_doctor_id
+from Database.operations_visits import fetch_visits, find_visit, fetch_pets_for_client, update_visit, fetch_clients_to_visit, fetch_pets_to_visit, fetch_doctors_to_visit, add_visit, find_visit_by_id, soft_delete_visit, find_visits_by_client_id, find_visits_by_doctor_id, find_appointment_by_id, update_diagnosis, find_doctor_id_by_appointment_id
 from Database.operations_client import fetch_clients, add_client, find_client, find_client_by_id, update_client, soft_delete_client, find_client_to_details_by_id
 import Database.operations_doctors
 print(dir(Database.operations_doctors))
@@ -12,6 +12,7 @@ from WebApp.Templates.doctors_view import render_doctors_list_page
 from WebApp.Templates.doctor_view import render_doctor_details_page
 from WebApp.Templates.pets_view import render_pets_list_page
 from WebApp.Templates.visits_view import render_visits_list_page
+from WebApp.Templates.edit_diagnosis_view import render_edit_diagnosis_page
 from http.server import SimpleHTTPRequestHandler, HTTPServer
 from urllib.parse import parse_qs, urlparse, unquote, unquote_plus
 import traceback  
@@ -258,6 +259,26 @@ class MyHandler(SimpleHTTPRequestHandler):
             self.send_header("Content-type", "text/html; charset=utf-8")
             self.end_headers()
             self.wfile.write(html.encode("utf-8"))
+
+
+#######################     EDYCJA/WPISANIE DIAGNOZY W WIDOKU LEKARZA #######################
+
+
+        elif self.path.startswith("/edit_diagnosis/"):
+            appointment_id = int(self.path.split("/")[-1])
+            appointment = find_appointment_by_id(appointment_id)
+            print("DEBUG appointment:", appointment)
+            if appointment:
+                doctor_id = appointment[4]  # kolumna doctor_id z bazy
+                current_diagnosis = appointment[5]  # diagnoza
+                html = render_edit_diagnosis_page(appointment_id, doctor_id, current_diagnosis)
+                self.send_response(200)
+                self.send_header("Content-type", "text/html; charset=utf-8")
+                self.end_headers()
+                self.wfile.write(html.encode("utf-8"))
+            else:
+                self.send_error(404, "Appointment not found")
+
 
 
 #######################    LISTA ZWIERZĄT  #######################
@@ -844,6 +865,28 @@ class MyHandler(SimpleHTTPRequestHandler):
 
             print(post_data)  # Sprawdzić, co jest przesyłane
             self.handle_add_doctor_post(data)
+
+
+###############         DODAJEMY DIAGNOZĘ W SZCZEGÓŁACH LEKARZA         ###########################
+
+
+        elif self.path.startswith("/update_diagnosis/"):
+            appointment_id = int(self.path.split("/")[-1])
+            content_length = int(self.headers['Content-Length'])
+            post_data = self.rfile.read(content_length).decode('utf-8')
+
+            # Prosty parser danych formularza
+            from urllib.parse import parse_qs
+            form = parse_qs(post_data)
+            diagnosis = form.get("diagnosis", [""])[0]
+
+            update_diagnosis(appointment_id, diagnosis)
+
+            # Po zapisie przekierowanie z powrotem
+            self.send_response(303)
+            self.send_header("Location", f"/doctor_details/{find_doctor_id_by_appointment_id(appointment_id)}")
+            self.end_headers()
+
 
 
 

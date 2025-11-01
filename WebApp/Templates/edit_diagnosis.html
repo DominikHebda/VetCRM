@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edytuj diagnozę - VetCRM</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f7fdf4; }
+        .container { max-width: 700px; padding-top: 30px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Edytuj diagnozę</h1>
+        <form method="POST" action="/update_diagnosis/{{ appointment_id }}">
+            <div class="form-group">
+                <label for="diagnosis">Diagnoza</label>
+                <textarea class="form-control" id="diagnosis" name="diagnosis" rows="4">{{ current_diagnosis }}</textarea>
+            </div>
+            <button type="submit" class="btn btn-success">Zapisz</button>
+            <a href="/doctor_details/{{ doctor_id }}" class="btn btn-secondary">Anuluj</a>
+        </form>
+    </div>
+</body>
+</html>

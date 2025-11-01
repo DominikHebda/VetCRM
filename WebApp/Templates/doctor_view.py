@@ -2,7 +2,7 @@ def render_doctor_details_page(doctor, visits):
     """
     Renderuje stronę szczegółów lekarza i jego wizyt.
     doctor - (id, first_name, last_name, specialization, phone, email, soft_delete)
-    visits - [(pet_name, client_full_name, visit_date, visit_time, diagnosis), ...]
+    visits - [(pet_name, client_full_name, visit_date, visit_time, diagnosis, appointment_id), ...]
     """
     id, first_name, last_name, specialization, phone, soft_delete = doctor
     doctor_status = "Aktywny" if not soft_delete else f"Usunięty: {soft_delete.strftime('%Y-%m-%d %H:%M:%S')}"
@@ -11,8 +11,9 @@ def render_doctor_details_page(doctor, visits):
     visits_rows = ""
     if visits:
         for v in visits:
-            pet_name, client_full_name, visit_date, visit_time, diagnosis = v
+            pet_name, client_full_name, visit_date, visit_time, diagnosis, appointment_id = v  # ✅ poprawiona zmienna
             diagnosis_text = diagnosis if diagnosis and str(diagnosis).strip() else "brak diagnozy"
+
             visits_rows += f"""
             <tr>
                 <td>{pet_name}</td>
@@ -20,12 +21,15 @@ def render_doctor_details_page(doctor, visits):
                 <td>{visit_date.strftime('%Y-%m-%d') if hasattr(visit_date, 'strftime') else visit_date}</td>
                 <td>{visit_time.strftime('%H:%M') if hasattr(visit_time, 'strftime') else visit_time}</td>
                 <td>{diagnosis_text}</td>
+                <td>
+                    <a href="/edit_diagnosis/{appointment_id}" class="btn btn-sm btn-warning">Edytuj diagnozę</a>
+                </td>
             </tr>
             """
     else:
         visits_rows = """
         <tr>
-            <td colspan="5" class="text-center text-muted">Brak wizyt przypisanych do tego lekarza.</td>
+            <td colspan="6" class="text-center text-muted">Brak wizyt przypisanych do tego lekarza.</td>
         </tr>
         """
 

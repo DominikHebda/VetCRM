@@ -366,7 +366,8 @@ def find_visits_by_doctor_id(doctor_id):
                 CONCAT(c.first_name, ' ', c.last_name) AS client_full_name,
                 a.visit_date,
                 a.visit_time,
-                a.diagnosis
+                a.diagnosis,
+                a.id AS appointment_id
             FROM appointments a
             JOIN pets p ON a.pet_id = p.id
             JOIN clients c ON a.client_id = c.id
@@ -374,6 +375,7 @@ def find_visits_by_doctor_id(doctor_id):
               AND (a.soft_delete IS NULL OR a.soft_delete = 0)
             ORDER BY a.visit_date DESC, a.visit_time DESC
         """
+        print("DEBUG SQL:\n", query)
         cursor.execute(query, (doctor_id,))
         visits = cursor.fetchall()
         return visits
@@ -381,6 +383,62 @@ def find_visits_by_doctor_id(doctor_id):
     except Exception as e:
         print(f"Błąd przy pobieraniu wizyt lekarza: {e}")
         return []
+    finally:
+        cursor.close()
+        connection.close()
+
+
+def find_appointment_by_id(appointment_id):
+    connection = create_connection()
+    if connection is None:
+        return None
+    try:
+        cursor = connection.cursor()
+        query = """
+            SELECT id, client_id, pet_id, doctor_id, visit_date, visit_time, diagnosis
+            FROM appointments
+            WHERE id = %s
+        """
+        cursor.execute(query, (appointment_id,))
+        return cursor.fetchone()
+    except Exception as e:
+        print(f"Błąd przy pobieraniu wizyty: {e}")
+        return None
+    finally:
+        cursor.close()
+        connection.close()
+
+
+
+def update_diagnosis(appointment_id, diagnosis):
+    connection = create_connection()
+    if connection is None:
+        return
+    try:
+        cursor = connection.cursor()
+        query = "UPDATE appointments SET diagnosis = %s WHERE id = %s"
+        cursor.execute(query, (diagnosis, appointment_id))
+        connection.commit()
+        print(f"Zaktualizowano diagnozę dla wizyty ID {appointment_id}")
+    except Exception as e:
+        print(f"Błąd przy aktualizacji diagnozy: {e}")
+    finally:
+        cursor.close()
+        connection.close()
+
+
+def find_doctor_id_by_appointment_id(appointment_id):
+    connection = create_connection()
+    if connection is None:
+        return None
+    try:
+        cursor = connection.cursor()
+        cursor.execute("SELECT doctor_id FROM appointments WHERE id = %s", (appointment_id,))
+        result = cursor.fetchone()
+        return result[0] if result else None
+    except Exception as e:
+        print(f"Błąd przy wyszukiwaniu doctor_id: {e}")
+        return None
     finally:
         cursor.close()
         connection.close()
