@@ -388,6 +388,36 @@ def find_visits_by_doctor_id(doctor_id):
         connection.close()
 
 
+def find_visits_by_pet_id(pet_id):
+    connection = create_connection()
+    if connection is None:
+        return []
+    try:
+        cursor = connection.cursor()
+        query = """
+            SELECT 
+                a.id AS appointment_id,
+                a.visit_date,
+                a.visit_time,
+                CONCAT(d.first_name, ' ', d.last_name) AS doctor_full_name,
+                a.diagnosis
+            FROM appointments a
+            JOIN doctors d ON a.doctor_id = d.id
+            WHERE a.pet_id = %s
+              AND (a.soft_delete IS NULL OR a.soft_delete = 0)
+            ORDER BY a.visit_date DESC, a.visit_time DESC
+        """
+        cursor.execute(query, (pet_id,))
+        return cursor.fetchall()
+    except Exception as e:
+        print(f"Błąd przy pobieraniu wizyt zwierzęcia: {e}")
+        return []
+    finally:
+        cursor.close()
+        connection.close()
+
+
+
 def find_appointment_by_id(appointment_id):
     connection = create_connection()
     if connection is None:

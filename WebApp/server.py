@@ -1,16 +1,17 @@
-from Database.operations_visits import fetch_visits, find_visit, fetch_pets_for_client, update_visit, fetch_clients_to_visit, fetch_pets_to_visit, fetch_doctors_to_visit, add_visit, find_visit_by_id, soft_delete_visit, find_visits_by_client_id, find_visits_by_doctor_id, find_appointment_by_id, update_diagnosis, find_doctor_id_by_appointment_id
+from Database.operations_visits import fetch_visits, find_visit, fetch_pets_for_client, update_visit, fetch_clients_to_visit, fetch_pets_to_visit, fetch_doctors_to_visit, add_visit, find_visit_by_id, soft_delete_visit, find_visits_by_client_id, find_visits_by_doctor_id, find_visits_by_pet_id, find_appointment_by_id, update_diagnosis, find_doctor_id_by_appointment_id
 from Database.operations_client import fetch_clients, add_client, find_client, find_client_by_id, update_client, soft_delete_client, find_client_to_details_by_id
 import Database.operations_doctors
 print(dir(Database.operations_doctors))
 print(">>> Ładuje się właściwy plik operations_doctors.py")
 
 from Database.operations_doctors import add_doctor, fetch_doctors, find_doctor_by_id, find_doctor, update_doctor, soft_delete_doctor, find_doctor_to_details_by_id
-from Database.operations_pets import fetch_pets, add_pet, fetch_clients_to_indications, find_pet, find_pet_by_id, update_pet, soft_delete_pet, find_pets_by_client_id
+from Database.operations_pets import fetch_pets, add_pet, fetch_clients_to_indications, find_pet, find_pet_by_id, update_pet, soft_delete_pet, find_pets_by_client_id, find_pet_details_by_id
 from WebApp.Templates.clients_view import render_clients_list_page
 from WebApp.Templates.client_view import render_client_details_page
 from WebApp.Templates.doctors_view import render_doctors_list_page
 from WebApp.Templates.doctor_view import render_doctor_details_page
 from WebApp.Templates.pets_view import render_pets_list_page
+from WebApp.Templates.pet_view import render_pet_details_page
 from WebApp.Templates.visits_view import render_visits_list_page
 from WebApp.Templates.edit_diagnosis_view import render_edit_diagnosis_page
 from http.server import SimpleHTTPRequestHandler, HTTPServer
@@ -28,8 +29,6 @@ def render_home_page():
         home_page_html = f.read()
     
     return home_page_html
-
-# ########          FRAGMENT KODU DO SPRAWDZENIA                  ##########################################################################################
 
 def render_add_next_visit():
     with open("templates/adding_visit.html", "r", encoding="utf-8") as f:
@@ -291,6 +290,49 @@ class MyHandler(SimpleHTTPRequestHandler):
             self.send_header("Content-type", "text/html; charset=utf-8")
             self.end_headers()
             self.wfile.write(html.encode("utf-8"))
+
+
+
+        elif self.path.startswith("/pet_details/"):
+
+            pet_id = int(self.path.split("/")[-1])
+            print(f"\nRequested path: {self.path}")
+            print(f"DEBUG: Szukam szczegółów dla zwierzęcia o ID = {pet_id}")
+
+            pet = find_pet_details_by_id(pet_id)
+            if pet is None:
+                self.send_response(404)
+                self.send_header("Content-type", "text/html; charset=utf-8")
+                self.end_headers()
+                self.wfile.write(f"<h1>Nie znaleziono zwierzęcia.</h1>")
+                return
+
+            # 🔹 Rozpakowanie danych zwierzęcia zgodnie z Twoją strukturą tabeli:
+            # id, pet_name, species, breed, age, soft_delete, client_id
+            pet_id, pet_name, species, breed, age, soft_delete, client_id = pet
+            print(f"DEBUG: Dane zwierzęcia -> ID={pet_id}, Imię={pet_name}, KlientID={client_id}")
+
+            # 🔹 Pobranie właściciela po client_id
+            client = None
+            if client_id:
+                print(f"DEBUG: Próba pobrania właściciela o ID={client_id}")
+                client = find_client_to_details_by_id(client_id)
+                print(f"DEBUG: Wynik zapytania klienta: {client}")
+            else:
+                print("⚠️ Brak przypisanego właściciela w rekordzie zwierzęcia!")
+
+            # 🔹 Pobranie listy wizyt
+            visits = find_visits_by_pet_id(pet_id)
+            print(f"DEBUG: Liczba znalezionych wizyt = {len(visits) if visits else 0}")
+
+            # 🔹 Wyrenderowanie strony
+            html = render_pet_details_page(pet, client, visits)
+
+            self.send_response(200)
+            self.send_header("Content-type", "text/html; charset=utf-8")
+            self.end_headers()
+            self.wfile.write(html.encode("utf-8"))
+
 
 
 #######################    LISTA WIZYT  #######################

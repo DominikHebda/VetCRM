@@ -216,9 +216,10 @@ def find_client_to_details_by_id(client_id):
         
         # Zapytanie SQL w celu znalezienia klienta po ID
         query = """
-            SELECT id, first_name, last_name, phone, address, COALESCE(soft_delete, 0) AS soft_delete
+            SELECT id, first_name, last_name, phone, address, soft_delete
             FROM clients
             WHERE id = %s
+
         """
         cursor.execute(query, (client_id,))
         

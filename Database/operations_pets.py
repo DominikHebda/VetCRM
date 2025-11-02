@@ -228,3 +228,26 @@ def find_pets_by_client_id(client_id):
     cursor.close()
     connection.close()
     return pets
+
+
+def find_pet_details_by_id(pet_id):
+    connection = create_connection()
+    if connection is None:
+        return None
+
+    try:
+        cursor = connection.cursor()
+        query = """
+            SELECT id, pet_name, species, breed, age, soft_delete, client_id
+            FROM pets
+            WHERE id = %s
+        """
+        cursor.execute(query, (pet_id,))
+        pet = cursor.fetchone()
+        return pet
+    except Exception as e:
+        print(f"Błąd przy pobieraniu zwierzęcia: {e}")
+        return None
+    finally:
+        cursor.close()
+        connection.close()
