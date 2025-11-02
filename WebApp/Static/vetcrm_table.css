@@ -1,0 +1,156 @@
+/* === VetCRM - wspólne style dla tabel === */
+
+/* Ogólne tło i styl nagłówków */
+body {
+    background-color: #f7fdf4;
+    font-family: "Helvetica Neue", Arial, sans-serif;
+}
+
+h1 {
+    color: #3c763d;
+}
+
+/* Kontener o stałej szerokości */
+.container {
+    max-width: 1000px;
+    padding-top: 50px;
+    margin: 0 auto;
+}
+
+/* ======= Tabele ======= */
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: auto;
+    /* Pozwala kolumnom dopasować się naturalnie */
+}
+
+table th,
+table td {
+    vertical-align: middle !important;
+    text-align: left;
+    padding: 0.5rem 0.75rem;
+    white-space: normal;
+    /* Nagłówki mogą się łamać */
+    word-wrap: break-word;
+}
+
+/* Kolorystyka wierszy */
+.table-striped tbody tr:nth-of-type(odd) {
+    background-color: #e7f5e5;
+}
+
+/* Kolumna ID - wąska */
+th:first-child,
+td:first-child {
+    width: 60px;
+    text-align: center;
+}
+
+/* Kolumna Akcje - dopasowana */
+th:last-child,
+td:last-child {
+    width: 200px;
+    text-align: center;
+}
+
+/* Ograniczamy maksymalną szerokość zwykłych kolumn */
+td {
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ======= Przyciski ======= */
+
+/* Wspólne przyciski dla wszystkich list */
+.btn-add {
+    background-color: #007b9e;
+    color: white;
+    border-color: #007b9e;
+}
+
+.btn-add:hover {
+    background-color: #00688b;
+    border-color: #005a74;
+}
+
+/* Akcje w tabeli */
+.table .btn-group {
+    display: flex;
+    gap: 5px;
+    /* odstęp między przyciskami */
+    justify-content: flex-start;
+    flex-wrap: nowrap;
+}
+
+.table .btn-sm {
+    font-size: 0.875rem;
+    padding: 0.25rem 0.5rem;
+    /* dokładnie 21px wysokości */
+    white-space: nowrap;
+}
+
+
+/* Kolory przycisków akcji */
+.btn-info {
+    background-color: #17a2b8;
+    border-color: #17a2b8;
+}
+
+.btn-info:hover {
+    background-color: #138496;
+    border-color: #117a8b;
+}
+
+.btn-edit {
+    background-color: orange;
+    border-color: orange;
+    color: #fff;
+}
+
+.btn-edit:hover {
+    background-color: darkorange;
+    border-color: darkorange;
+}
+
+.btn-danger {
+    background-color: red;
+    border-color: red;
+}
+
+.btn-danger:hover {
+    background-color: darkred;
+    border-color: darkred;
+}
+
+/* ======= Sekcja przycisków nad tabelą ======= */
+.d-flex {
+    display: flex;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+}
+
+.d-flex a {
+    margin-right: 10px;
+    margin-bottom: 10px;
+}
+
+/* ======= Responsywność ======= */
+@media (max-width: 768px) {
+    .container {
+        max-width: 95%;
+        padding: 20px;
+    }
+
+    table th,
+    table td {
+        font-size: 0.9rem;
+        white-space: normal;
+    }
+
+    .btn-group {
+        flex-wrap: wrap;
+    }
+}

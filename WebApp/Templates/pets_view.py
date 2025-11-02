@@ -25,9 +25,9 @@ def render_pets_list_page(pets):
             <td>{owner_name}</td>
             <td>
                 <div class="btn-group">
-                    <a href="/pet_details/{pet_id}" class="btn btn-info">Szczegóły</a>
-                    <a href="/update_pet/{pet_id}" class="btn btn-edit">Edytuj</a>
-                    <a href="/delete_pet/{pet_id}" class="btn btn-danger">Usuń</a>
+                    <a href="/pet_details/{pet_id}" class="btn btn-info btn-sm">Szczegóły</a>
+                    <a href="/update_pet/{pet_id}" class="btn btn-edit btn-sm">Edytuj</a>
+                    <a href="/delete_pet/{pet_id}" class="btn btn-danger btn-sm">Usuń</a>
                 </div>
             </td>
         </tr>

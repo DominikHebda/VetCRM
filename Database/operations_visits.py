@@ -46,23 +46,25 @@ def fetch_visits():
 
             print("Dane pobrane z bazy:")  # Debugowanie
             for row in results:
-                # Zastosowanie funkcji do przekształcenia timedelty na godziny i minuty
                 visit_time_str = format_visit_time(row[6])  # row[6] to `visit_time`
-
-                print(f"Data wizyty: {row[5]}, Czas wizyty: {visit_time_str}, Diagnoza: {row[7]}")  # Debugowanie
-
-                # Zapisujemy dane wizyty w formie krotki (id, created_at, ...)
+                
+                # Skracanie diagnozy do 20 znaków
+                full_diagnosis = row[7] if row[7] else "Brak diagnozy"
+                if len(full_diagnosis) > 20:
+                    full_diagnosis = full_diagnosis[:20] + "..."
+                
                 visits.append({
                     'id': row[0],
                     'created_at': row[1],
                     'visit_date': row[5],
                     'visit_time': visit_time_str,
-                    'diagnosis': row[7] if row[7] else "Brak diagnozy",
+                    'diagnosis': full_diagnosis,
                     'soft_delete': row[8],
                     'client_full_name': f"{row[9]} {row[10]}",
                     'pet_name': row[11],
                     'doctor_full_name': f"{row[12]} {row[13]}"
                 })
+
 
             
             cursor.close()

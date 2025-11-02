@@ -24,9 +24,9 @@ def render_visits_list_page(visits):
             <td>{deletion_date}</td>
             <td>
                 <div class="btn-group">
-                    <a href="/visit_details/{visit_id}" class="btn btn-info">Szczegóły</a>
-                    <a href="/update_visit/{visit_id}" class="btn btn-edit">Edytuj</a>
-                    <a href="/delete_visit/{visit_id}" class="btn btn-danger">Usuń</a>
+                    <a href="/visit_details/{visit_id}" class="btn btn-info btn-sm">Szczegóły</a>
+                    <a href="/update_visit/{visit_id}" class="btn btn-edit btn-sm">Edytuj</a>
+                    <a href="/delete_visit/{visit_id}" class="btn btn-danger btn-sm">Usuń</a>
                 </div>
             </td>
         </tr>

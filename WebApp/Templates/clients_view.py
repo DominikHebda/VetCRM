@@ -10,7 +10,7 @@ def render_clients_list_page(clients):
         last_name = client[2]
         phone = client[3]
         address = client[4]
-        deletion_date = client[5] if client[5] else ""
+        deletion_date = client[5].strftime('%Y-%m-%d %H:%M:%S') if client[5] else "Klient aktywny"
 
         client_rows += f"""
         <tr>
