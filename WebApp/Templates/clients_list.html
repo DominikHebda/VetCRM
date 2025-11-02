@@ -48,17 +48,11 @@
             justify-content: flex-start; /* Przyciski po lewej stronie */
         }
     
-        /* Ustalmy marginesy przycisków w tabeli */
-        .btn-group .btn {
-            margin-right: 10px; /* Odstęp między przyciskami */
-            margin-bottom: 5px; /* Odstęp na dole, żeby przyciski się nie zderzały */
-        }
-
         /* Flexbox dla akcji w tabeli, aby zachować równą przestrzeń między przyciskami */
         .btn-group {
             display: flex;
-            justify-content: space-between; /* Rozdziel przyciski równomiernie */
-            width: 100%; /* Zapewni, że przyciski będą miały pełną szerokość komórki */
+            gap: 5px;
+            justify-content: flex-start;
         }
 
         /* Doprecyzowanie wyglądu przycisków Edytuj i Usuń */

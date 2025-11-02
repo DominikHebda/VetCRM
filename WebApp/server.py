@@ -1,4 +1,4 @@
-from Database.operations_visits import fetch_visits, find_visit, fetch_pets_for_client, update_visit, fetch_clients_to_visit, fetch_pets_to_visit, fetch_doctors_to_visit, add_visit, find_visit_by_id, soft_delete_visit, find_visits_by_client_id, find_visits_by_doctor_id, find_visits_by_pet_id, find_appointment_by_id, update_diagnosis, find_doctor_id_by_appointment_id
+from Database.operations_visits import fetch_visits, find_visit, fetch_pets_for_client, update_visit, fetch_clients_to_visit, fetch_pets_to_visit, fetch_doctors_to_visit, add_visit, find_visit_by_id, soft_delete_visit, find_visits_by_client_id, find_visits_by_doctor_id, find_visits_by_pet_id, find_appointment_by_id, update_diagnosis, find_doctor_id_by_appointment_id, find_visit_details_by_id
 from Database.operations_client import fetch_clients, add_client, find_client, find_client_by_id, update_client, soft_delete_client, find_client_to_details_by_id
 import Database.operations_doctors
 print(dir(Database.operations_doctors))
@@ -13,6 +13,7 @@ from WebApp.Templates.doctor_view import render_doctor_details_page
 from WebApp.Templates.pets_view import render_pets_list_page
 from WebApp.Templates.pet_view import render_pet_details_page
 from WebApp.Templates.visits_view import render_visits_list_page
+from WebApp.Templates.visit_details import render_visit_details_page
 from WebApp.Templates.edit_diagnosis_view import render_edit_diagnosis_page
 from http.server import SimpleHTTPRequestHandler, HTTPServer
 from urllib.parse import parse_qs, urlparse, unquote, unquote_plus
@@ -293,6 +294,9 @@ class MyHandler(SimpleHTTPRequestHandler):
 
 
 
+#######################    SZCZEGÓŁY WYBRANEGO ZWIERZECIA #######################
+
+
         elif self.path.startswith("/pet_details/"):
 
             pet_id = int(self.path.split("/")[-1])
@@ -341,6 +345,41 @@ class MyHandler(SimpleHTTPRequestHandler):
         elif self.path.startswith("/visits_list/"):
             visits = fetch_visits()
             html = render_visits_list_page(visits)
+
+            self.send_response(200)
+            self.send_header("Content-type", "text/html; charset=utf-8")
+            self.end_headers()
+            self.wfile.write(html.encode("utf-8"))
+
+
+#######################    SZCZEGÓŁY WYBRANEJ WIZYTY #######################
+
+
+        elif self.path.startswith("/visit_details/"):
+            appointment_id = int(self.path.split("/")[-1])
+            print(f"\nRequested path: {self.path}")
+            print(f"DEBUG: Szukam szczegółów wizyty ID = {appointment_id}")
+
+            appointment = find_visit_details_by_id(appointment_id)
+            if appointment is None:
+                self.send_response(404)
+                self.send_header("Content-type", "text/html; charset=utf-8")
+                self.end_headers()
+                self.wfile.write("<h1>Nie znaleziono wizyty.</h1>".encode("utf-8"))
+                return
+
+            # Pobranie powiązanych rekordów
+            client_id = appointment[1]
+            pet_id = appointment[2]
+            doctor_id = appointment[3]
+
+            client = find_client_to_details_by_id(client_id) if client_id else None
+            pet = find_pet_details_by_id(pet_id) if pet_id else None
+            doctor = find_doctor_to_details_by_id(doctor_id) if doctor_id else None
+
+            print(f"DEBUG: client={client}, pet={pet}, doctor={doctor}")
+
+            html = render_visit_details_page(appointment, client, pet, doctor)
 
             self.send_response(200)
             self.send_header("Content-type", "text/html; charset=utf-8")

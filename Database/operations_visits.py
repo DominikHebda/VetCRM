@@ -438,6 +438,29 @@ def find_appointment_by_id(appointment_id):
         cursor.close()
         connection.close()
 
+def find_visit_details_by_id(appointment_id):
+    """Pobiera pełne dane wizyty po ID"""
+    connection = create_connection()
+    if connection is None:
+        return None
+
+    try:
+        cursor = connection.cursor()
+        query = """
+            SELECT id, client_id, pet_id, doctor_id, visit_date, visit_time, diagnosis, soft_delete
+            FROM appointments
+            WHERE id = %s
+        """
+        cursor.execute(query, (appointment_id,))
+        appointment = cursor.fetchone()
+        return appointment
+    except Exception as e:
+        print(f"Błąd przy pobieraniu wizyty: {e}")
+        return None
+    finally:
+        cursor.close()
+        connection.close()
+
 
 
 def update_diagnosis(appointment_id, diagnosis):
