@@ -28,7 +28,6 @@ def fetch_pets():
             connection.close()
     return pets
 
-# fetch_pets()
 
 def add_pet(pet_name, species, breed, age, client_id):
     try:
@@ -142,34 +141,59 @@ def find_pet_by_id(pet_id):
         connection.close()
 
 
-def update_pet(pet_id, pet_name, species, breed, age, client_id):
+def update_pet(pet_id, pet_name, species, breed, age, new_client_id):
     try:
         connection = create_connection()
-        cursor = connection.cursor()
-
-        print("Połączenie z bazą nawiązane.")
+        cursor = connection.cursor(dictionary=True)
 
         pet_id = int(pet_id)
+        new_client_id = int(new_client_id)
 
-        query = """
-        UPDATE pets
-        SET pet_name = %s, species = %s, breed = %s, age = %s, client_id = %s
-        WHERE id = %s
-        """
+        # --- 1️⃣ Pobierz aktualnego właściciela (z tabeli pet_ownerships lub pets) ---
+        cursor.execute("""
+            SELECT client_id FROM pets WHERE id = %s
+        """, (pet_id,))
+        current_owner = cursor.fetchone()
+        current_client_id = current_owner['client_id'] if current_owner else None
 
-        print(f"Zapytanie: {query}")
-        print(f"Parametry: {(pet_name, species, breed, age, client_id, pet_id)}")
+        # --- 2️⃣ Zaktualizuj dane zwierzęcia ---
+        cursor.execute("""
+            UPDATE pets
+            SET pet_name = %s, species = %s, breed = %s, age = %s, client_id = %s
+            WHERE id = %s
+        """, (pet_name, species, breed, age, new_client_id, pet_id))
 
-        cursor.execute(query, (pet_name, species, breed, age, client_id, pet_id))
+        # --- 3️⃣ Sprawdź, czy właściciel się zmienił ---
+        if current_client_id != new_client_id:
+            print(f"Zmieniono właściciela dla zwierzęcia ID {pet_id}: {current_client_id} → {new_client_id}")
+
+            # 3a) Zakończ poprzedni rekord w pet_owner_history
+            cursor.execute("""
+                UPDATE pet_owner_history
+                SET ownership_end = NOW(), active = 0
+                WHERE pet_id = %s AND active = 1
+            """, (pet_id,))
+
+            # 3b) Dodaj nowy rekord z nowym właścicielem
+            cursor.execute("""
+                INSERT INTO pet_owner_history (pet_id, client_id, ownership_start, active)
+                VALUES (%s, %s, NOW(), 1)
+            """, (pet_id, new_client_id))
+
         connection.commit()
+        print(f"✅ Dane zwierzęcia {pet_name} zostały zaktualizowane.")
+        if current_client_id != new_client_id:
+            print("Historia właścicieli została zaktualizowana.")
 
-        print(f"Dane zwierzęcia {pet_name} ({species}) zostały zaktualizowane.")
     except Exception as e:
-        print(f"Błąd podczas aktualizowania danych zwierzęcia: {e}")
+        print(f"❌ Błąd podczas aktualizowania danych zwierzęcia: {e}")
+        if connection:
+            connection.rollback()
     finally:
         if connection.is_connected():
             cursor.close()
             connection.close()
+
 
 
 
@@ -251,3 +275,38 @@ def find_pet_details_by_id(pet_id):
     finally:
         cursor.close()
         connection.close()
+
+def fetch_pet_owner_history():
+    """Pobiera historię zmian właścicieli zwierząt (relacja wiele-do-wielu)."""
+    records = []
+    try:
+        connection = create_connection()
+        cursor = connection.cursor()
+
+        cursor.execute("""
+            SELECT 
+                h.id,
+                p.pet_name,
+                CONCAT(c.first_name, ' ', c.last_name) AS owner_name,
+                h.ownership_start,
+                h.ownership_end,
+                CASE WHEN h.active = 1 THEN 'Aktywna' ELSE 'Zakończona' END AS status
+            FROM pet_owner_history h
+            JOIN pets p ON h.pet_id = p.id
+            JOIN clients c ON h.client_id = c.id
+            ORDER BY h.ownership_start DESC;
+        """)
+
+        results = cursor.fetchall()
+        for row in results:
+            records.append(row)
+
+    except Exception as e:
+        print(f"Błąd podczas pobierania historii właścicieli: {e}")
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+    return records
+

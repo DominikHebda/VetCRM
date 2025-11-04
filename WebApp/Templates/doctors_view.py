@@ -1,6 +1,6 @@
-def render_doctors_list_page(doctors):
+def render_doctors_list_page(doctors, current_page=1, total_pages=1):
     """
-    Generuje stronę HTML z listą lekarzy na podstawie danych pobranych z bazy.
+    Generuje stronę HTML z listą lekarzy z obsługą paginacji.
     """
     doctors_rows = ""
 
@@ -30,11 +30,32 @@ def render_doctors_list_page(doctors):
         </tr>
         """
 
-    # Wczytujemy szablon HTML z folderu templates
+    # --- Generowanie sekcji paginacji ---
+    pagination_html = ""
+    if total_pages > 1:
+        pagination_html = '<nav aria-label="Stronicowanie"><ul class="pagination justify-content-center">'
+
+        # Przycisk "poprzednia strona"
+        if current_page > 1:
+            pagination_html += f'<li class="page-item"><a class="page-link" href="/doctors_list/?page={current_page - 1}">«</a></li>'
+
+        # Numery stron
+        for p in range(1, total_pages + 1):
+            active = "active" if p == current_page else ""
+            pagination_html += f'<li class="page-item {active}"><a class="page-link" href="/doctors_list/?page={p}">{p}</a></li>'
+
+        # Przycisk "następna strona"
+        if current_page < total_pages:
+            pagination_html += f'<li class="page-item"><a class="page-link" href="/doctors_list/?page={current_page + 1}">»</a></li>'
+
+        pagination_html += '</ul></nav>'
+
+    # --- Wczytanie szablonu HTML ---
     with open("templates/doctors_list.html", "r", encoding="utf-8") as f:
         template = f.read()
 
-    # Wstawiamy wygenerowane wiersze tabeli
+    # --- Podmiana zmiennych w szablonie ---
     html = template.replace("{{ doctor_rows }}", doctors_rows)
+    html = html.replace("{{ pagination }}", pagination_html)
 
     return html

@@ -1,11 +1,8 @@
 from Database.operations_visits import fetch_visits, find_visit, fetch_pets_for_client, update_visit, fetch_clients_to_visit, fetch_pets_to_visit, fetch_doctors_to_visit, add_visit, find_visit_by_id, soft_delete_visit, find_visits_by_client_id, find_visits_by_doctor_id, find_visits_by_pet_id, find_appointment_by_id, update_diagnosis, find_doctor_id_by_appointment_id, find_visit_details_by_id
 from Database.operations_client import fetch_clients, add_client, find_client, find_client_by_id, update_client, soft_delete_client, find_client_to_details_by_id
-import Database.operations_doctors
-print(dir(Database.operations_doctors))
-print(">>> Ładuje się właściwy plik operations_doctors.py")
-
 from Database.operations_doctors import add_doctor, fetch_doctors, find_doctor_by_id, find_doctor, update_doctor, soft_delete_doctor, find_doctor_to_details_by_id
-from Database.operations_pets import fetch_pets, add_pet, fetch_clients_to_indications, find_pet, find_pet_by_id, update_pet, soft_delete_pet, find_pets_by_client_id, find_pet_details_by_id
+from Database.operations_pets import fetch_pets, add_pet, fetch_clients_to_indications, find_pet, find_pet_by_id, update_pet, soft_delete_pet, find_pets_by_client_id, find_pet_details_by_id, fetch_pet_owner_history
+from Database.utils import paginate_list
 from WebApp.Templates.clients_view import render_clients_list_page
 from WebApp.Templates.client_view import render_client_details_page
 from WebApp.Templates.doctors_view import render_doctors_list_page
@@ -15,6 +12,7 @@ from WebApp.Templates.pet_view import render_pet_details_page
 from WebApp.Templates.visits_view import render_visits_list_page
 from WebApp.Templates.visit_details import render_visit_details_page
 from WebApp.Templates.edit_diagnosis_view import render_edit_diagnosis_page
+from WebApp.Templates.pet_owner_history_view import render_pet_owner_history_page
 from http.server import SimpleHTTPRequestHandler, HTTPServer
 from urllib.parse import parse_qs, urlparse, unquote, unquote_plus
 import traceback  
@@ -210,13 +208,21 @@ class MyHandler(SimpleHTTPRequestHandler):
 #######################    LISTA KLIENTÓW  #######################
 
         elif self.path.startswith("/clients_list/"):
-            clients = fetch_clients()  # pobieramy dane z modelu
-            html = render_clients_list_page(clients)  # generujemy widok
+
+            query = urlparse(self.path).query
+            params = parse_qs(query)
+            page = int(params.get("page", [1])[0])
+
+            clients = fetch_clients()
+            paginated_clients, total_pages = paginate_list(clients, page, 20)
+
+            html_content = render_clients_list_page(paginated_clients, page, total_pages)
 
             self.send_response(200)
             self.send_header("Content-type", "text/html; charset=utf-8")
             self.end_headers()
-            self.wfile.write(html.encode("utf-8"))
+            self.wfile.write(html_content.encode("utf-8"))
+
 
 
 #######################    SZCZEGÓŁY WYBRANEGO KLIENTA #######################
@@ -237,13 +243,21 @@ class MyHandler(SimpleHTTPRequestHandler):
 #######################    LISTA LEKARZY  #######################
 
         elif self.path.startswith("/doctors_list/"):
+
+            query = urlparse(self.path).query
+            params = parse_qs(query)
+            page = int(params.get("page", [1])[0])
+
             doctors = fetch_doctors()
-            html = render_doctors_list_page(doctors)
+            paginated_doctors, total_pages = paginate_list(doctors, page, 20)
+
+            html_content = render_doctors_list_page(paginated_doctors, page, total_pages)
 
             self.send_response(200)
             self.send_header("Content-type", "text/html; charset=utf-8")
             self.end_headers()
-            self.wfile.write(html.encode("utf-8"))
+            self.wfile.write(html_content.encode("utf-8"))
+
 
 
 #######################    SZCZEGÓŁY WYBRANEGO LEKARZA #######################
@@ -284,13 +298,21 @@ class MyHandler(SimpleHTTPRequestHandler):
 #######################    LISTA ZWIERZĄT  #######################
 
         elif self.path.startswith("/pets_list/"):
+            
+            query = urlparse(self.path).query
+            params = parse_qs(query)
+            page = int(params.get("page", [1])[0])
+
             pets = fetch_pets()
-            html = render_pets_list_page(pets)
+            paginated_pets, total_pages = paginate_list(pets, page, 20)
+
+            html_content = render_pets_list_page(paginated_pets, page, total_pages)
 
             self.send_response(200)
             self.send_header("Content-type", "text/html; charset=utf-8")
             self.end_headers()
-            self.wfile.write(html.encode("utf-8"))
+            self.wfile.write(html_content.encode("utf-8"))
+
 
 
 
@@ -338,18 +360,46 @@ class MyHandler(SimpleHTTPRequestHandler):
             self.wfile.write(html.encode("utf-8"))
 
 
+#######################    HISTORIA ZMIANY WŁAŚCICIELI ZWIERZĄT  #######################
 
-#######################    LISTA WIZYT  #######################
-
-
-        elif self.path.startswith("/visits_list/"):
-            visits = fetch_visits()
-            html = render_visits_list_page(visits)
+        elif self.path.startswith("/pet_owner_history/"):
+            parsed_url = urlparse(self.path)
+            query_params = parse_qs(parsed_url.query)
+            page = int(query_params.get("page", [1])[0])  # domyślnie 1
+            
+            history = fetch_pet_owner_history()
+            history_page, total_pages = paginate_list(history, page=page, per_page=20)
+            
+            html = render_pet_owner_history_page(history_page, page, total_pages)
+            
 
             self.send_response(200)
             self.send_header("Content-type", "text/html; charset=utf-8")
             self.end_headers()
             self.wfile.write(html.encode("utf-8"))
+
+
+
+#######################    LISTA WIZYT  #######################
+
+
+        elif self.path.startswith("/visits_list"):
+
+            parsed_url = urlparse(self.path)
+            query_params = parse_qs(parsed_url.query)
+            page = int(query_params.get("page", [1])[0])  # domyślnie 1
+
+            visits = fetch_visits()
+            visits_page, total_pages = paginate_list(visits, page=page, per_page=20)
+
+            # generujemy stronę HTML
+            html = render_visits_list_page(visits_page, page, total_pages)
+
+            self.send_response(200)
+            self.send_header("Content-type", "text/html; charset=utf-8")
+            self.end_headers()
+            self.wfile.write(html.encode("utf-8"))
+
 
 
 #######################    SZCZEGÓŁY WYBRANEJ WIZYTY #######################
@@ -957,7 +1007,6 @@ class MyHandler(SimpleHTTPRequestHandler):
             post_data = self.rfile.read(content_length).decode('utf-8')
 
             # Prosty parser danych formularza
-            from urllib.parse import parse_qs
             form = parse_qs(post_data)
             diagnosis = form.get("diagnosis", [""])[0]
 

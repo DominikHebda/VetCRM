@@ -137,6 +137,16 @@ td {
     margin-bottom: 10px;
 }
 
+.pagination-container {
+    text-align: center;
+}
+
+.pagination .page-item.active .page-link {
+    background-color: #007b9e;
+    border-color: #007b9e;
+}
+
+
 /* ======= Responsywność ======= */
 @media (max-width: 768px) {
     .container {

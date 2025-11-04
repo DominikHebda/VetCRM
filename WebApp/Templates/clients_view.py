@@ -1,6 +1,6 @@
-def render_clients_list_page(clients):
+def render_clients_list_page(clients, current_page=1, total_pages=1):
     """
-    Generuje stronę HTML z listą klientów na podstawie danych pobranych z bazy.
+    Generuje stronę HTML z listą klientów z paginacją.
     """
     client_rows = ""
 
@@ -30,11 +30,32 @@ def render_clients_list_page(clients):
         </tr>
         """
 
-    # Wczytujemy szablon HTML
+    # --- Generowanie sekcji paginacji ---
+    pagination_html = ""
+    if total_pages > 1:
+        pagination_html = '<nav aria-label="Stronicowanie"><ul class="pagination justify-content-center">'
+
+        # Przycisk poprzedniej strony
+        if current_page > 1:
+            pagination_html += f'<li class="page-item"><a class="page-link" href="/clients_list/?page={current_page - 1}">«</a></li>'
+
+        # Numery stron
+        for p in range(1, total_pages + 1):
+            active = "active" if p == current_page else ""
+            pagination_html += f'<li class="page-item {active}"><a class="page-link" href="/clients_list/?page={p}">{p}</a></li>'
+
+        # Przycisk następnej strony
+        if current_page < total_pages:
+            pagination_html += f'<li class="page-item"><a class="page-link" href="/clients_list/?page={current_page + 1}">»</a></li>'
+
+        pagination_html += '</ul></nav>'
+
+    # --- Wczytanie szablonu HTML ---
     with open("templates/clients_list.html", "r", encoding="utf-8") as f:
         template = f.read()
 
-    # Wstawiamy wygenerowane wiersze do szablonu
+    # --- Podmiana znaczników ---
     html = template.replace("{{ client_rows }}", client_rows)
+    html = html.replace("{{ pagination }}", pagination_html)
 
     return html
