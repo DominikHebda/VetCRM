@@ -2,22 +2,56 @@
 <html lang="pl">
 <head>
     <meta charset="UTF-8">
-    <title>Dodaj użytkownika</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dodaj użytkownika - VetCRM</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
 </head>
-<body>
-<h1>Dodaj nowego użytkownika</h1>
-<form action="/add_user/" method="post">
-    <label>Login: <input type="text" name="username" required></label><br>
-    <label>Hasło: <input type="password" name="password" required></label><br>
-    <label>Imię i nazwisko: <input type="text" name="full_name" required></label><br>
-    <label>Rola:
-        <select name="role">
-            <option value="doctor">Lekarz</option>
-            <option value="admin">Admin</option>
-            <option value="receptionist">Recepcjonista</option>
-        </select>
-    </label><br>
-    <button type="submit">Dodaj użytkownika</button>
-</form>
+<body class="bg-light">
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <h2 class="card-title mb-4 text-center">Dodaj nowego użytkownika</h2>
+                        <form action="/add_user/" method="post">
+                            <div class="form-group">
+                                <label for="username">Login:</label>
+                                <input type="text" id="username" name="username" class="form-control" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="password">Hasło:</label>
+                                <input type="password" id="password" name="password" class="form-control" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="full_name">Imię i nazwisko:</label>
+                                <input type="text" id="full_name" name="full_name" class="form-control" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="role">Rola:</label>
+                                <select id="role" name="role" class="form-control">
+                                    <option value="doctor">Lekarz</option>
+                                    <option value="admin">Admin</option>
+                                    <option value="receptionist">Recepcjonista</option>
+                                </select>
+                            </div>
+
+                            <button type="submit" class="btn btn-success btn-block">Dodaj użytkownika</button>
+                        </form>
+
+                        <p class="mt-4 text-center">
+                            <a href="/" class="btn btn-primary">Powrót do strony głównej</a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 </body>
 </html>

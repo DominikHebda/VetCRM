@@ -278,10 +278,7 @@ class MyHandler(SimpleHTTPRequestHandler):
                 self.wfile.write(f"<p>Błąd: {e}</p>".encode("utf-8"))
             return
 
-      
-
-
-
+    
 
 #######################    LISTA KLIENTÓW  #######################
 
