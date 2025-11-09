@@ -1,8 +1,10 @@
+from Database.connection import create_connection
 from Database.operations_visits import fetch_visits, find_visit, fetch_pets_for_client, update_visit, fetch_clients_to_visit, fetch_pets_to_visit, fetch_doctors_to_visit, add_visit, find_visit_by_id, soft_delete_visit, find_visits_by_client_id, find_visits_by_doctor_id, find_visits_by_pet_id, find_appointment_by_id, update_diagnosis, find_doctor_id_by_appointment_id, find_visit_details_by_id
 from Database.operations_client import fetch_clients, add_client, find_client, find_client_by_id, update_client, soft_delete_client, find_client_to_details_by_id
 from Database.operations_doctors import add_doctor, fetch_doctors, find_doctor_by_id, find_doctor, update_doctor, soft_delete_doctor, find_doctor_to_details_by_id
 from Database.operations_pets import fetch_pets, add_pet, fetch_clients_to_indications, find_pet, find_pet_by_id, update_pet, soft_delete_pet, find_pets_by_client_id, find_pet_details_by_id, fetch_pet_owner_history
 from Database.utils import paginate_list
+from Database.auth_utils import hash_password, verify_password, create_session, get_session, destroy_session, sessions
 from WebApp.Templates.clients_view import render_clients_list_page
 from WebApp.Templates.client_view import render_client_details_page
 from WebApp.Templates.doctors_view import render_doctors_list_page
@@ -13,11 +15,14 @@ from WebApp.Templates.visits_view import render_visits_list_page
 from WebApp.Templates.visit_details import render_visit_details_page
 from WebApp.Templates.edit_diagnosis_view import render_edit_diagnosis_page
 from WebApp.Templates.pet_owner_history_view import render_pet_owner_history_page
+from WebApp.Templates.render_login_page import render_login_page
 from http.server import SimpleHTTPRequestHandler, HTTPServer
 from urllib.parse import parse_qs, urlparse, unquote, unquote_plus
+from http.cookies import SimpleCookie
 import traceback  
 import logging
 import os
+import html
 
 
 logging.basicConfig(level=logging.DEBUG)  # Ustawienie poziomu logowania na DEBUG
@@ -174,25 +179,94 @@ def render_home_page():
 
 
 class MyHandler(SimpleHTTPRequestHandler):
-    def do_GET(self):
-        print(f"Requested path: {self.path}") 
-        print(globals().get('urlparse'))
-        print(f"urlparse w do_GET: {urlparse}")
 
+    def get_session_id_from_cookie(self) -> str | None:
+        """Zwraca session_id z ciasteczka lub None, jeśli brak"""
+        cookie_header = self.headers.get("Cookie")
+        if not cookie_header:
+            return None
 
-########################    WYŚWIETLANIE STRONY POWITALNEJ  ################
-
-       # ###################   STRONA GŁÓWNA (index.html)   ##########################
-
-        if self.path == "/":
-            # Przekierowanie z "/" na "/index.html"
-            self.send_response(303)
-            self.send_header("Location", "/index.html")
+        cookie = SimpleCookie()
+        cookie.load(cookie_header)
+        if "session_id" in cookie:
+            return cookie["session_id"].value
+        return None
+    
+    def serve_static_html(self, filepath):
+        try:
+            with open(filepath, "r", encoding="utf-8") as f:
+                html_content = f.read()
+            self.send_response(200)
+            self.send_header("Content-type", "text/html; charset=utf-8")
             self.end_headers()
+            self.wfile.write(html_content.encode("utf-8"))
+        except Exception as e:
+            self.send_response(500)
+            self.send_header("Content-type", "text/plain; charset=utf-8")
+            self.end_headers()
+            self.wfile.write(f"Nie udało się wczytać pliku {filepath}: {e}".encode("utf-8"))
 
+
+    def do_GET(self):
+        print(f"Requested path: {self.path}")
+        
+        session_id = self.get_session_id_from_cookie()
+        user_info = sessions.get(session_id)
+
+        # 🔹 STRONA GŁÓWNA → przekierowanie do /login jeśli brak sesji
+        if self.path == "/":
+            self.send_response(303)
+            self.send_header("Location", "/login")
+            self.end_headers()
+            return
+
+        # 🔹 STRONA LOGOWANIA
+        elif self.path in ("/login", "/login.html"):
+            self.serve_static_html("templates/login.html")
+            return
+
+        # 🔹 STRONA BŁĘDU LOGOWANIA
+        elif self.path == "/login_error.html":
+            self.serve_static_html("templates/login_error.html")
+            return
+
+        # 🔹 WYLOGOWANIE
+        elif self.path == "/logout":
+            if session_id:
+                destroy_session(session_id)
+                print(f"✅ Wylogowano użytkownika z sesji: {session_id}")
+
+            self.send_response(303)
+            self.send_header(
+                "Set-Cookie",
+                "session_id=deleted; expires=Thu, 01 Jan 1970 00:00:00 GMT; "
+                "HttpOnly; Path=/; Secure; SameSite=Lax"
+            )
+            self.send_header("Location", "/login")
+            self.end_headers()
+            return
+
+        # 🔹 PANEL ADMINA – dodawanie użytkownika
+        elif self.path == "/add_user.html":
+            if not user_info or user_info.get("role") != "admin":
+                self.send_response(403)
+                self.end_headers()
+                self.wfile.write(
+                    "403 Forbidden: tylko admin może dodawać użytkowników".encode("utf-8")
+                )
+                return
+            self.serve_static_html("templates/add_user.html")
+            return
+
+        # 🔹 STRONA GŁÓWNA PO ZALOGOWANIU
         elif self.path in ("/index", "/index.html"):
+            if not user_info:
+                self.send_response(303)
+                self.send_header("Location", "/login")
+                self.end_headers()
+                return
             try:
-                home_page_html = render_home_page()
+                home_page_html = render_home_page(user_info)
                 self.send_response(200)
                 self.send_header("Content-type", "text/html; charset=utf-8")
                 self.end_headers()
@@ -202,6 +276,10 @@ class MyHandler(SimpleHTTPRequestHandler):
                 self.send_header("Content-type", "text/html; charset=utf-8")
                 self.end_headers()
                 self.wfile.write(f"<p>Błąd: {e}</p>".encode("utf-8"))
+            return
+
+      
+
 
 
 
@@ -913,7 +991,7 @@ class MyHandler(SimpleHTTPRequestHandler):
                     self.send_header("Content-type", "text/html")
                     self.end_headers()
                     error_message = f"Error deleting visit: {e}"
-                    self.wfile.write(error_message.encode('utf-8'))
+                    self.wfile.write(error_message.encode('utf-8'))            
 
         else:
             super().do_GET()
@@ -923,8 +1001,134 @@ class MyHandler(SimpleHTTPRequestHandler):
 
 
     def do_POST(self):
+        print(f"➡️ Odebrano POST {self.path}")
 
-        if self.path.startswith("/visits_table/"):
+        content_length = int(self.headers.get("Content-Length", 0))
+        post_data = self.rfile.read(content_length).decode("utf-8")
+        params = parse_qs(post_data)
+
+        # ---------------- LOGIN ----------------
+        if self.path == "/login":
+            username = params.get("username", [""])[0]
+            password = params.get("password", [""])[0]
+
+            print(f"Login próba: username={username}, password={'*' * len(password)}")
+
+            # 🔹 brak loginu lub hasła
+            if not username or not password:
+                self.send_response(303)
+                self.send_header("Location", "/login_error.html")
+                self.end_headers()
+                return
+
+            try:
+                conn = create_connection()
+                if not conn:
+                    self.send_response(303)
+                    self.send_header("Location", "/login_error.html")
+                    self.end_headers()
+                    return
+
+                cursor = conn.cursor()
+                cursor.execute(
+                    "SELECT password_hash, role FROM users WHERE username = %s", (username,)
+                )
+                result = cursor.fetchone()
+
+                if not result:
+                    # 🔹 niepoprawny login
+                    self.send_response(303)
+                    self.send_header("Location", "/login_error.html")
+                    self.end_headers()
+                    return
+
+                stored_hash, user_role = result
+
+                if verify_password(password, stored_hash):
+                    session_id = create_session(username, user_role)
+                    print(f"✅ Zalogowano: {username} | session_id={session_id}")
+
+                    self.send_response(303)
+                    if user_role == "admin":
+                        self.send_header("Location", "/add_user.html")
+                    else:
+                        self.send_header("Location", "/index.html")
+
+                    self.send_header(
+                        "Set-Cookie",
+                        f"session_id={session_id}; HttpOnly; Path=/; Secure; SameSite=Lax"
+                    )
+                    self.end_headers()
+                else:
+                    # 🔹 niepoprawne hasło
+                    self.send_response(303)
+                    self.send_header("Location", "/login_error.html")
+                    self.end_headers()
+
+            except Exception as e:
+                import traceback
+                traceback.print_exc()
+                self.send_response(303)
+                self.send_header("Location", "/login_error.html")
+                self.end_headers()
+
+            finally:
+                if 'conn' in locals() and conn:
+                    conn.close()
+            return
+
+    # ---------------- ADD USER ----------------
+        elif self.path == "/add_user/":
+            session_id = self.get_session_id_from_cookie()
+            user_info = sessions.get(session_id)
+
+            if not user_info or user_info.get("role") != "admin":
+                self.send_response(403)
+                self.end_headers()
+                self.wfile.write(
+                    "403 Forbidden: tylko admin może dodawać użytkowników".encode("utf-8")
+                )
+                return
+
+            username = params.get("username", [""])[0]
+            password = params.get("password", [""])[0]
+            full_name = params.get("full_name", [""])[0]
+            role = params.get("role", ["doctor"])[0]
+
+            if not username or not password or not full_name:
+                self.send_response(400)
+                self.end_headers()
+                self.wfile.write(b"Brak wymaganych danych")
+                return
+
+            password_hash = hash_password(password)
+
+            try:
+                conn = create_connection()
+                cursor = conn.cursor()
+                cursor.execute(
+                    "INSERT INTO users (username, password_hash, full_name, role, created_at) "
+                    "VALUES (%s,%s,%s,%s,NOW())",
+                    (username, password_hash, full_name, role)
+                )
+                conn.commit()
+                self.send_response(303)
+                self.send_header("Location", "/add_user.html")
+                self.end_headers()
+            except Exception as e:
+                self.send_response(500)
+                self.end_headers()
+                self.wfile.write(f"Błąd: {e}".encode("utf-8"))
+            finally:
+                if conn:
+                    conn.close()
+            return
+
+
+
+
+
+        elif self.path.startswith("/visits_table/"):
             try:
                 # Odczyt danych z formularza
                 content_length = int(self.headers['Content-Length'])
@@ -1460,6 +1664,9 @@ class MyHandler(SimpleHTTPRequestHandler):
                 self.end_headers()
                 error_html = f"<h1>Błąd podczas zapisu wizyty</h1><pre>{e}</pre>"
                 self.wfile.write(error_html.encode("utf-8", errors="replace"))
+
+        else:
+            self.send_error(404, "Unknown POST path")
 
 
 # ############################  DEF ADDING POST  ################################
