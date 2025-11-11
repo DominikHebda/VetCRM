@@ -28,9 +28,11 @@ import html
 logging.basicConfig(level=logging.DEBUG)  # Ustawienie poziomu logowania na DEBUG
 
 
-def render_home_page():
+def render_home_page(user_info):
     with open("templates/index.html", "r", encoding="utf-8") as f:
         home_page_html = f.read()
+
+    home_page_html = home_page_html.replace("{{username}}", user_info.get("username", "password"))
     
     return home_page_html
 
@@ -167,12 +169,6 @@ def render_visit_deleted(visit_id):
         visit_deleted_html = f.read()
 
     return visit_deleted_html
-
-def render_home_page():
-    with open("templates/index.html", "r", encoding="utf-8") as f:
-        home_page_html = f.read()
-    
-    return home_page_html
 
 
 # ####################              do_GET              #####################################################
