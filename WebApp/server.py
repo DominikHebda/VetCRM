@@ -996,12 +996,11 @@ class MyHandler(SimpleHTTPRequestHandler):
     def do_POST(self):
         print(f"➡️ Odebrano POST {self.path}")
 
-        content_length = int(self.headers.get("Content-Length", 0))
-        post_data = self.rfile.read(content_length).decode("utf-8")
-        params = parse_qs(post_data)
-
         # ---------------- LOGIN ----------------
         if self.path == "/login":
+            content_length = int(self.headers.get("Content-Length", 0))
+            raw = self.rfile.read(content_length).decode("utf-8")
+            params = parse_qs(raw)
             username = params.get("username", [""])[0]
             password = params.get("password", [""])[0]
 
@@ -1072,6 +1071,11 @@ class MyHandler(SimpleHTTPRequestHandler):
 
     # ---------------- ADD USER ----------------
         elif self.path == "/add_user/":
+            content_length = int(self.headers.get("Content-Length", 0))
+            raw = self.rfile.read(content_length).decode("utf-8")
+            params = parse_qs(raw)
+
+
             session_id = self.get_session_id_from_cookie()
             user_info = sessions.get(session_id)
 
@@ -1119,8 +1123,6 @@ class MyHandler(SimpleHTTPRequestHandler):
 
 
 
-
-
         elif self.path.startswith("/visits_table/"):
             try:
                 # Odczyt danych z formularza
@@ -1163,16 +1165,32 @@ class MyHandler(SimpleHTTPRequestHandler):
 ###################     DODAJEMY NOWEGO KLIENTA      ##################################
 
         elif self.path == "/adding_client/":
-            # Odczytujemy dane POST
-            content_length = int(self.headers.get('Content-Length'))
-            post_data = self.rfile.read(content_length)
-            post_data = post_data.decode('utf-8')
+            content_length = int(self.headers.get("Content-Length", 0))
 
-            # Tworzymy słownik z danymi
-            data = {item.split('=')[0]: unquote_plus(item.split('=')[1]) for item in post_data.split('&')}
+            if content_length == 0:
+                print("❗ Content-Length = 0 — przeglądarka NIC nie wysłała")
+                self.send_response(400)
+                self.end_headers()
+                self.wfile.write(b"Brak danych POST")
+                return
 
-            # Wywołanie metody obsługującej dodanie klienta
+            raw = self.rfile.read(content_length).decode("utf-8")
+            print("RAW POST DATA:", repr(raw))
+
+            # Jeśli raw zawiera dane — parsujemy
+            try:
+                data = dict(item.split("=", 1) for item in raw.split("&") if "=" in item)
+                data = {k: unquote_plus(v) for k, v in data.items()}
+            except Exception as e:
+                print("Blad parsowania:", e)
+                data = {}
+
+            print("Parsed POST data:", data)
+
+            # --- OBSŁUGA WŁAŚCIWA ---
             self.handle_add_client_post(data)
+            return
+
 
 
 ###############         DODAJEMY NOWEGO LEKARZA         ###########################
@@ -1666,23 +1684,34 @@ class MyHandler(SimpleHTTPRequestHandler):
 
 
     def handle_add_client_post(self, data):
-        first_name = data.get('client_first_name', '')
-        last_name = data.get('client_last_name', '')
-        phone = data.get('client_phone', '')
-        address = data.get('client_address', '')
+        print("➡️ handle_add_client_post received:", data)
+
+        first_name = data.get("client_first_name", "").strip()
+        last_name = data.get("client_last_name", "").strip()
+        phone = data.get("client_phone", "").strip()
+        address = data.get("client_address", "").strip()
+
+        if not first_name or not last_name:
+            self.send_response(400)
+            self.send_header("Content-type", "text/html; charset=utf-8")
+            self.end_headers()
+            self.wfile.write("<p>Błąd: imię i nazwisko są wymagane.</p>".encode("utf-8"))
+            return
 
         try:
             add_client(first_name, last_name, phone, address)
+
             self.send_response(200)
             self.send_header("Content-type", "text/html; charset=utf-8")
             self.end_headers()
-            self.wfile.write("<p>Client został dodany do bazy danych!</p>".encode('utf-8'))
+            self.wfile.write("<p>Klient dodany pomyślnie!</p>".encode("utf-8"))
+
         except Exception as e:
-                # Wysłanie odpowiedzi HTTP w przypadku błędu
+            print("❌ Błąd add_client:", e)
             self.send_response(500)
             self.send_header("Content-type", "text/html; charset=utf-8")
             self.end_headers()
-            self.wfile.write(f"<p>Wystąpił błąd: {e}</p>".encode('utf-8'))
+            self.wfile.write(f"<p>Błąd serwera: {e}</p>".encode("utf-8"))
 
 
     def handle_add_doctor_post(self, data):
