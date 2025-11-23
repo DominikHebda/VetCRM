@@ -215,3 +215,24 @@ def find_doctor_to_details_by_id(doctor_id):
     finally:
         cursor.close()
         connection.close()
+
+def get_doctor_id_by_fullname(first_name, last_name):
+    conn = create_connection()
+    if not conn:
+        return None
+    try:
+        cursor = conn.cursor()
+        query = """
+            SELECT id FROM doctors
+            WHERE first_name LIKE %s
+              AND last_name LIKE %s
+              AND (soft_delete IS NULL OR soft_delete = 0)
+        """
+        cursor.execute(query, (first_name, last_name))
+        row = cursor.fetchone()
+        return row[0] if row else None
+    except Exception as e:
+        print("SQL error:", e)
+        return None
+    finally:
+        conn.close() 

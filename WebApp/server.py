@@ -1,10 +1,13 @@
 from Database.connection import create_connection
 from Database.operations_visits import fetch_visits, find_visit, fetch_pets_for_client, update_visit, fetch_clients_to_visit, fetch_pets_to_visit, fetch_doctors_to_visit, add_visit, find_visit_by_id, soft_delete_visit, find_visits_by_client_id, find_visits_by_doctor_id, find_visits_by_pet_id, find_appointment_by_id, update_diagnosis, find_doctor_id_by_appointment_id, find_visit_details_by_id
 from Database.operations_client import fetch_clients, add_client, find_client, find_client_by_id, update_client, soft_delete_client, find_client_to_details_by_id
-from Database.operations_doctors import add_doctor, fetch_doctors, find_doctor_by_id, find_doctor, update_doctor, soft_delete_doctor, find_doctor_to_details_by_id
+from Database.operations_doctors import add_doctor, fetch_doctors, find_doctor_by_id, find_doctor, update_doctor, soft_delete_doctor, find_doctor_to_details_by_id, get_doctor_id_by_fullname
 from Database.operations_pets import fetch_pets, add_pet, fetch_clients_to_indications, find_pet, find_pet_by_id, update_pet, soft_delete_pet, find_pets_by_client_id, find_pet_details_by_id, fetch_pet_owner_history
+from Database.sql_user import insert_user
 from Database.utils import paginate_list
-from Database.auth_utils import hash_password, verify_password, create_session, get_session, destroy_session, sessions
+from Database.password_utils import hash_password, verify_password
+from Database.auth_service import authenticate_user
+from Database.sessions import create_session, get_session, destroy_session, sessions
 from WebApp.Templates.clients_view import render_clients_list_page
 from WebApp.Templates.client_view import render_client_details_page
 from WebApp.Templates.doctors_view import render_doctors_list_page
@@ -1038,92 +1041,54 @@ class MyHandler(SimpleHTTPRequestHandler):
             content_length = int(self.headers.get("Content-Length", 0))
             raw = self.rfile.read(content_length).decode("utf-8")
             params = parse_qs(raw)
+
             username = params.get("username", [""])[0]
             password = params.get("password", [""])[0]
 
             print(f"Login próba: username={username}, password={'*' * len(password)}")
 
-            # 🔹 brak loginu lub hasła
             if not username or not password:
-                self.send_response(303)
-                self.send_header("Location", "/login_error.html")
-                self.end_headers()
-                return
+                return self.redirect("/login_error.html")
 
-            try:
-                conn = create_connection()
-                if not conn:
-                    self.send_response(303)
-                    self.send_header("Location", "/login_error.html")
-                    self.end_headers()
-                    return
+            result = authenticate_user(username, password)
 
-                cursor = conn.cursor()
-                cursor.execute(
-                    "SELECT password_hash, role, doctor_id FROM users WHERE username = %s", (username,)
-                )
-                result = cursor.fetchone()
+            if not result.success:
+                return self.redirect("/login_error.html")
 
-                if not result:
-                    # 🔹 niepoprawny login
-                    self.send_response(303)
-                    self.send_header("Location", "/login_error.html")
-                    self.end_headers()
-                    return
+            print(f"✅ Zalogowano: {username} | doctor_id={result.doctor_id} | session_id={result.session_id}")
 
-                stored_hash, user_role, doctor_id = result
+            # --- przekierowanie po roli ---
+            if result.role == "admin":
+                location = "/add_user.html"
+            elif result.role == "doctor":
+                location = f"/doctor_details/{result.doctor_id}"
+            else:
+                location = "/index.html"
 
-                if verify_password(password, stored_hash):
-                    session_id = create_session(username, user_role, doctor_id)
-                    print(f"✅ Zalogowano: {username} | doctor_id={doctor_id} | session_id={session_id}")
-
-                    self.send_response(303)
-                    if user_role == "admin":
-                        self.send_header("Location", "/add_user.html")
-                    elif user_role == "doctor":
-                        self.send_header("Location", f"/doctor_details/{doctor_id}")
-                    else:
-                        self.send_header("Location", "/index.html")
-
-                    self.send_header(
-                        "Set-Cookie",
-                        f"session_id={session_id}; HttpOnly; Path=/; Secure; SameSite=Lax"
-                    )
-                    self.end_headers()
-                else:
-                    # 🔹 niepoprawne hasło
-                    self.send_response(303)
-                    self.send_header("Location", "/login_error.html")
-                    self.end_headers()
-
-            except Exception as e:
-                import traceback
-                traceback.print_exc()
-                self.send_response(303)
-                self.send_header("Location", "/login_error.html")
-                self.end_headers()
-
-            finally:
-                if 'conn' in locals() and conn:
-                    conn.close()
+            self.send_response(303)
+            self.send_header("Location", location)
+            self.send_header(
+                "Set-Cookie",
+                f"session_id={result.session_id}; HttpOnly; Path=/; Secure; SameSite=Lax"
+            )
+            self.end_headers()
             return
 
     # ---------------- ADD USER ----------------
         elif self.path == "/add_user/":
+
             content_length = int(self.headers.get("Content-Length", 0))
             raw = self.rfile.read(content_length).decode("utf-8")
             params = parse_qs(raw)
 
-
             session_id = self.get_session_id_from_cookie()
             user_info = sessions.get(session_id)
 
+            # 🔒 tylko admin
             if not user_info or user_info.get("role") != "admin":
                 self.send_response(403)
                 self.end_headers()
-                self.wfile.write(
-                    "403 Forbidden: tylko admin może dodawać użytkowników".encode("utf-8")
-                )
+                self.wfile.write("403 Forbidden: tylko admin może dodawać użytkowników".encode("utf-8"))
                 return
 
             username = params.get("username", [""])[0]
@@ -1131,6 +1096,7 @@ class MyHandler(SimpleHTTPRequestHandler):
             full_name = params.get("full_name", [""])[0]
             role = params.get("role", ["doctor"])[0]
 
+            # 🔍 walidacja
             if not username or not password or not full_name:
                 self.send_response(400)
                 self.end_headers()
@@ -1139,60 +1105,41 @@ class MyHandler(SimpleHTTPRequestHandler):
 
             password_hash = hash_password(password)
 
-            try:
-                conn = create_connection()
-                cursor = conn.cursor()
+            # 🔹 Jeśli lekarz – split imienia i nazwiska
+            doctor_id = None
+            if role == "doctor":
+                parts = full_name.strip().split(maxsplit=1)
+                if len(parts) != 2:
+                    self.send_response(400)
+                    self.end_headers()
+                    self.wfile.write(f"Nieprawidłowe imię i nazwisko: '{full_name}'".encode("utf-8"))
+                    return
 
-                doctor_id = None
-                if role == "doctor":
-                    # Rozdzielenie full_name na first_name i last_name
-                    name_parts = full_name.strip().split(maxsplit=1)
-                    if len(name_parts) != 2:
-                        self.send_response(400)
-                        self.end_headers()
-                        self.wfile.write(
-                            f"Nieprawidłowe imię i nazwisko: '{full_name}'".encode("utf-8")
-                        )
-                        return
-                    first_name, last_name = name_parts
+                first_name, last_name = parts
 
-                    # Pobranie id lekarza z tabeli doctors, używając LIKE i ignorując soft_delete
-                    cursor.execute(
-                        "SELECT id FROM doctors WHERE first_name LIKE %s AND last_name LIKE %s AND (soft_delete IS NULL OR soft_delete = 0)",
-                        (first_name, last_name)
-                    )
-                    result = cursor.fetchone()
-                    if result:
-                        doctor_id = result[0]
-                    else:
-                        self.send_response(400)
-                        self.end_headers()
-                        self.wfile.write(
-                            f"Brak lekarza w tabeli doctors o imieniu i nazwisku '{full_name}'".encode("utf-8")
-                        )
-                        return
+                doctor_id = get_doctor_id_by_fullname(first_name, last_name)
 
+                if not doctor_id:
+                    self.send_response(400)
+                    self.end_headers()
+                    self.wfile.write(f"Brak lekarza o imieniu i nazwisku '{full_name}'".encode("utf-8"))
+                    return
 
-                # Dodanie użytkownika do tabeli users
-                cursor.execute(
-                    "INSERT INTO users (username, password_hash, full_name, role, doctor_id, created_at) "
-                    "VALUES (%s, %s, %s, %s, %s, NOW())",
-                    (username, password_hash, full_name, role, doctor_id)
-                )
-                conn.commit()
+            # 🔹 Zapis użytkownika
+            success = insert_user(username, password_hash, full_name, role, doctor_id)
 
-                self.send_response(303)
-                self.send_header("Location", "/add_user.html")
-                self.end_headers()
-
-            except Exception as e:
+            if not success:
                 self.send_response(500)
                 self.end_headers()
-                self.wfile.write(f"Błąd: {e}".encode("utf-8"))
-            finally:
-                if conn:
-                    conn.close()
+                self.wfile.write("Nie udało się dodać użytkownika")
+                return
+
+            # 🔁 redirect
+            self.send_response(303)
+            self.send_header("Location", "/add_user.html")
+            self.end_headers()
             return
+
 
 
 

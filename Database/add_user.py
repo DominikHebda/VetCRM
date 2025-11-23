@@ -1,5 +1,5 @@
-from connection import create_connection
-from auth_utils import hash_password
+from Database.connection import create_connection
+from password_utils import hash_password
 
 def add_user(username, password):
     conn = create_connection()
@@ -24,3 +24,4 @@ def add_user(username, password):
 
 if __name__ == "__main__":
     add_user("Admin", "Admin")
+
