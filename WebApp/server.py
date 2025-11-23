@@ -22,6 +22,7 @@ from WebApp.Templates.render_login_page import render_login_page
 from WebApp.Templates.client_search_view import render_client_search_results, render_client_not_found
 from WebApp.Templates.doctor_search_view import render_doctor_search_results, render_doctor_not_found
 from WebApp.Templates.pet_search_view import render_pet_search_results, render_pet_not_found
+from WebApp.Templates.visit_search_view import render_visit_search_results, render_visit_not_found
 from http.server import SimpleHTTPRequestHandler, HTTPServer
 from urllib.parse import parse_qs, urlparse, unquote, unquote_plus
 from http.cookies import SimpleCookie
@@ -1456,11 +1457,12 @@ class MyHandler(SimpleHTTPRequestHandler):
 ###################     WYSZUKUJEMY WIZYTĘ    ##################################
             
         elif self.path == "/searching_visit/":
+
             content_length = int(self.headers.get('Content-Length'))
             post_data = self.rfile.read(content_length)
-            data = {item.split('=')[0]: unquote_plus(item.split('=')[1]) for item in post_data.decode('utf-8').split('&')}
+            data = {item.split('=')[0]: unquote_plus(item.split('=')[1]) 
+                    for item in post_data.decode('utf-8').split('&')}
 
-            # Pobierz dane z formularza
             first_name = data.get('first_name', '')
             last_name = data.get('last_name', '')
             pet_name = data.get('pet_name', '')
@@ -1469,45 +1471,23 @@ class MyHandler(SimpleHTTPRequestHandler):
                 self.send_error(400, "Brak wymaganych danych (first_name, last_name, pet_name).")
                 return
 
-            visits = find_visit(first_name, last_name, pet_name)
+            visit = find_visit(first_name, last_name, pet_name)
 
-            if visits:
-                with open("templates/output_searching_visit.html", "r", encoding="utf-8") as file:
-                    html_content = file.read()
-
-                visit_rows = ""
-                for visit in visits:
-                    visit_id, pet_name, client_name, visit_date, visit_time, diagnosis = visit
-                    visit_row = f"""
-                        <tr>
-                            <td>{visit_id}</td>
-                            <td>{pet_name}</td>
-                            <td>{client_name}</td>
-                            <td>{visit_date}</td>
-                            <td>{visit_time}</td>
-                            <td>{diagnosis}</td>
-                            <td>
-                                <div class="btn-group">
-                                    <a href="/update_visit/{visit_id}" class="btn btn-edit">Edytuj</a>
-                                    <a href="/delete_visit/{visit_id}" class="btn btn-danger">Usuń</a>
-                                </div>
-                            </td>
-                        </tr>
-                    """
-                    visit_rows += visit_row
-
-                html_content = html_content.replace("{{ visit_rows }}", visit_rows)
-
+            if visit:
+                html = render_visit_search_results(visit)
                 self.send_response(200)
                 self.send_header("Content-type", "text/html; charset=utf-8")
                 self.end_headers()
-                self.wfile.write(html_content.encode('utf-8'))
-
+                self.wfile.write(html.encode("utf-8"))
             else:
+                html = render_visit_not_found()
                 self.send_response(404)
                 self.send_header("Content-type", "text/html; charset=utf-8")
                 self.end_headers()
-                self.wfile.write("<p>Nie znaleziono wizyt dla podanych danych.</p>".encode('utf-8'))
+                self.wfile.write(html.encode("utf-8"))
+
+            return
+
 
 
 ###################     UAKTUALNIAMY DANE KLIENTA      ##################################
