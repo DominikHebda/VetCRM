@@ -20,6 +20,7 @@ from WebApp.Templates.edit_diagnosis_view import render_edit_diagnosis_page
 from WebApp.Templates.pet_owner_history_view import render_pet_owner_history_page
 from WebApp.Templates.render_login_page import render_login_page
 from WebApp.Templates.client_search_view import render_client_search_results, render_client_not_found
+from WebApp.Templates.doctor_search_view import render_doctor_search_results, render_doctor_not_found
 from http.server import SimpleHTTPRequestHandler, HTTPServer
 from urllib.parse import parse_qs, urlparse, unquote, unquote_plus
 from http.cookies import SimpleCookie
@@ -1384,61 +1385,35 @@ class MyHandler(SimpleHTTPRequestHandler):
 ###################     WYSZUKUJEMY LEKARZA    ##################################
 
         elif self.path == "/searching_doctor/":
+
             content_length = int(self.headers.get('Content-Length'))
             post_data = self.rfile.read(content_length)
-            data = {item.split('=')[0]: unquote_plus(item.split('=')[1]) for item in post_data.decode('utf-8').split('&')}
+            data = {item.split('=')[0]: unquote_plus(item.split('=')[1]) 
+                    for item in post_data.decode('utf-8').split('&')}
 
-            # Pobierz dane z formularza
             first_name = data.get('first_name', '')
             last_name = data.get('last_name', '')
 
-            # Upewnij się, że wartości zostały przypisane
             if not first_name or not last_name:
                 self.send_error(400, "Brak wymaganych danych (first_name, last_name).")
                 return
 
-            doctors = find_doctor(first_name, last_name)
+            doctor = find_doctor(first_name, last_name)
 
-            if doctors:
-                # Jeśli znaleziono klientów, wyświetlamy tabelę
-                # Wczytaj widok HTML
-                with open("templates/output_searching_doctor.html", "r", encoding="utf-8") as file:
-                    html_content = file.read()
-
-                # Generowanie wierszy dla każdego klienta
-                doctors_rows = ""
-                for doctor in doctors:
-                    # Generowanie wiersza z danymi klienta
-                    doctor_row = f"""
-                        <tr>
-                            <td>{doctor[0]}</td>
-                            <td>{doctor[1]}</td>
-                            <td>{doctor[2]}</td>
-                            <td>{doctor[3]}</td>
-                            <td>{doctor[4]}</td>
-                            <td>
-                                <div class="btn-group">
-                                    <a href="/update_doctor/{doctor[0]}" class="btn btn-edit">Edytuj</a>
-                                    <a href="/delete_doctor/{doctor[0]}" class="btn btn-danger">Usuń</a>
-                                </div>
-                            </td>
-                        </tr>
-                    """
-                    doctors_rows += doctor_row  # Dodajemy wiersz do tabeli
-
-                # Zastąpienie zmiennych w szablonie
-                html_content = html_content.replace("{{ doctor_rows }}", doctors_rows)
-
-                # Wyślij odpowiedź HTML z danymi klientów
+            if doctor:
+                html = render_doctor_search_results(doctor)
                 self.send_response(200)
                 self.send_header("Content-type", "text/html; charset=utf-8")
                 self.end_headers()
-                self.wfile.write(html_content.encode('utf-8'))
+                self.wfile.write(html.encode("utf-8"))
             else:
+                html = render_doctor_not_found()
                 self.send_response(404)
                 self.send_header("Content-type", "text/html; charset=utf-8")
                 self.end_headers()
-                self.wfile.write("<p>Nie znaleziono klientów.</p>".encode('utf-8'))
+                self.wfile.write(html.encode("utf-8"))
+
+            return
 
 
 
