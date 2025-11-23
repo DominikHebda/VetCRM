@@ -15,10 +15,14 @@ def verify_password(password: str, stored_hash: str) -> bool:
     dk = hashlib.pbkdf2_hmac("sha256", password.encode(), salt, 100_000)
     return dk.hex() == hash_hex
 
-def create_session(username: str, user_role: str) -> str:
-    """Tworzy nowy token sesji"""
+def create_session(username: str, user_role: str, doctor_id: int | None = None) -> str:
     session_id = hashlib.sha256(f"{username}{time.time()}{os.urandom(16)}".encode()).hexdigest()
-    sessions[session_id] = {"username": username, "role": user_role, "created_at": time.time()}
+    sessions[session_id] = {
+        "username": username,
+        "role": user_role,
+        "doctor_id": doctor_id,
+        "created_at": time.time()
+    }
     return session_id
 
 SESSION_TIMEOUT = 3600  # 1 godzina

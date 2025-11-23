@@ -202,6 +202,13 @@ class MyHandler(SimpleHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(f"Nie udało się wczytać pliku {filepath}: {e}".encode("utf-8"))
 
+    def forbidden(self):
+        self.send_response(403)
+        self.send_header("Content-type", "text/plain; charset=utf-8")
+        self.end_headers()
+        self.wfile.write(b"403 Forbidden: Brak uprawnien.")    
+
+
 
     def do_GET(self):
         print(f"Requested path: {self.path}")
@@ -335,9 +342,21 @@ class MyHandler(SimpleHTTPRequestHandler):
 
 
         elif self.path.startswith("/doctor_details/"):
-            doctor_id = int(self.path.split("/")[-1])
-            doctor = find_doctor_to_details_by_id(doctor_id)
-            visits = find_visits_by_doctor_id(doctor_id)
+            requested_id = int(self.path.split("/")[-1])
+
+            if not user_info:
+                return self.forbidden()
+
+            role = user_info.get("role")
+
+            # 🔹 Lekarz → może oglądać tylko samego siebie
+            if role == "doctor":
+                if user_info.get("doctor_id") != requested_id:
+                    return self.forbidden()
+
+            # 🔹 Admin / recepcja → może oglądać każdego lekarza
+            doctor = find_doctor_to_details_by_id(requested_id)
+            visits = find_visits_by_doctor_id(requested_id)
             html = render_doctor_details_page(doctor, visits)
 
             self.send_response(200)
@@ -352,17 +371,32 @@ class MyHandler(SimpleHTTPRequestHandler):
         elif self.path.startswith("/edit_diagnosis/"):
             appointment_id = int(self.path.split("/")[-1])
             appointment = find_appointment_by_id(appointment_id)
-            print("DEBUG appointment:", appointment)
-            if appointment:
-                doctor_id = appointment[4]  # kolumna doctor_id z bazy
-                current_diagnosis = appointment[5]  # diagnoza
-                html = render_edit_diagnosis_page(appointment_id, doctor_id, current_diagnosis)
-                self.send_response(200)
-                self.send_header("Content-type", "text/html; charset=utf-8")
-                self.end_headers()
-                self.wfile.write(html.encode("utf-8"))
-            else:
-                self.send_error(404, "Appointment not found")
+
+            print("DEBUG appointment =", appointment)
+
+            if not appointment:
+                return self.send_error(404, "Appointment not found")
+
+            appointment_doctor_id = appointment[3]
+            current_diagnosis = appointment[6]
+
+            # 🔒 Jeśli lekarz, może edytować tylko swoje wizyty
+            if user_info and user_info["role"] == "doctor":
+                logged_in_doctor_id = user_info.get("doctor_id")
+                if appointment_doctor_id != logged_in_doctor_id:
+                    return self.forbidden()
+
+            html = render_edit_diagnosis_page(
+                appointment_id,
+                appointment_doctor_id,
+                current_diagnosis
+            )
+
+            self.send_response(200)
+            self.send_header("Content-type", "text/html; charset=utf-8")
+            self.end_headers()
+            self.wfile.write(html.encode("utf-8"))
+            return
 
 
 
@@ -995,6 +1029,9 @@ class MyHandler(SimpleHTTPRequestHandler):
 
     def do_POST(self):
         print(f"➡️ Odebrano POST {self.path}")
+        session_id = self.get_session_id_from_cookie()
+        user_info = sessions.get(session_id)
+
 
         # ---------------- LOGIN ----------------
         if self.path == "/login":
@@ -1023,7 +1060,7 @@ class MyHandler(SimpleHTTPRequestHandler):
 
                 cursor = conn.cursor()
                 cursor.execute(
-                    "SELECT password_hash, role FROM users WHERE username = %s", (username,)
+                    "SELECT password_hash, role, doctor_id FROM users WHERE username = %s", (username,)
                 )
                 result = cursor.fetchone()
 
@@ -1034,15 +1071,17 @@ class MyHandler(SimpleHTTPRequestHandler):
                     self.end_headers()
                     return
 
-                stored_hash, user_role = result
+                stored_hash, user_role, doctor_id = result
 
                 if verify_password(password, stored_hash):
-                    session_id = create_session(username, user_role)
-                    print(f"✅ Zalogowano: {username} | session_id={session_id}")
+                    session_id = create_session(username, user_role, doctor_id)
+                    print(f"✅ Zalogowano: {username} | doctor_id={doctor_id} | session_id={session_id}")
 
                     self.send_response(303)
                     if user_role == "admin":
                         self.send_header("Location", "/add_user.html")
+                    elif user_role == "doctor":
+                        self.send_header("Location", f"/doctor_details/{doctor_id}")
                     else:
                         self.send_header("Location", "/index.html")
 
@@ -1103,15 +1142,49 @@ class MyHandler(SimpleHTTPRequestHandler):
             try:
                 conn = create_connection()
                 cursor = conn.cursor()
+
+                doctor_id = None
+                if role == "doctor":
+                    # Rozdzielenie full_name na first_name i last_name
+                    name_parts = full_name.strip().split(maxsplit=1)
+                    if len(name_parts) != 2:
+                        self.send_response(400)
+                        self.end_headers()
+                        self.wfile.write(
+                            f"Nieprawidłowe imię i nazwisko: '{full_name}'".encode("utf-8")
+                        )
+                        return
+                    first_name, last_name = name_parts
+
+                    # Pobranie id lekarza z tabeli doctors, używając LIKE i ignorując soft_delete
+                    cursor.execute(
+                        "SELECT id FROM doctors WHERE first_name LIKE %s AND last_name LIKE %s AND (soft_delete IS NULL OR soft_delete = 0)",
+                        (first_name, last_name)
+                    )
+                    result = cursor.fetchone()
+                    if result:
+                        doctor_id = result[0]
+                    else:
+                        self.send_response(400)
+                        self.end_headers()
+                        self.wfile.write(
+                            f"Brak lekarza w tabeli doctors o imieniu i nazwisku '{full_name}'".encode("utf-8")
+                        )
+                        return
+
+
+                # Dodanie użytkownika do tabeli users
                 cursor.execute(
-                    "INSERT INTO users (username, password_hash, full_name, role, created_at) "
-                    "VALUES (%s,%s,%s,%s,NOW())",
-                    (username, password_hash, full_name, role)
+                    "INSERT INTO users (username, password_hash, full_name, role, doctor_id, created_at) "
+                    "VALUES (%s, %s, %s, %s, %s, NOW())",
+                    (username, password_hash, full_name, role, doctor_id)
                 )
                 conn.commit()
+
                 self.send_response(303)
                 self.send_header("Location", "/add_user.html")
                 self.end_headers()
+
             except Exception as e:
                 self.send_response(500)
                 self.end_headers()
@@ -1217,20 +1290,48 @@ class MyHandler(SimpleHTTPRequestHandler):
 
 
         elif self.path.startswith("/update_diagnosis/"):
+
+            # 🔹 1. Sprawdź, czy użytkownik jest zalogowany
+            if not user_info:
+                return self.forbidden()
+
+            # 🔹 2. Pobierz appointment_id z URL
             appointment_id = int(self.path.split("/")[-1])
+
+            # 🔹 3. Pobierz wizytę z bazy
+            appointment = find_appointment_by_id(appointment_id)
+            if not appointment:
+                return self.send_error(404, "Appointment not found")
+
+            # appointment = (id, pet_id, client_id, date, time, doctor_id, diagnosis, ...)
+            appointment_doctor_id = appointment[3]     # <-- lekarz przypisany do wizyty
+            current_diagnosis   = appointment[6]
+
+            # 🔹 4. Lekarz może edytować TYLKO swoje wizyty
+            if user_info["role"] == "doctor":
+                logged_in_doctor_id = user_info.get("doctor_id")
+                if appointment_doctor_id != logged_in_doctor_id:
+                    return self.forbidden()
+
+            # 🔹 5. Odczyt danych POST
             content_length = int(self.headers['Content-Length'])
             post_data = self.rfile.read(content_length).decode('utf-8')
-
-            # Prosty parser danych formularza
             form = parse_qs(post_data)
             diagnosis = form.get("diagnosis", [""])[0]
 
+            # 🔹 6. Aktualizacja diagnozy
             update_diagnosis(appointment_id, diagnosis)
 
-            # Po zapisie przekierowanie z powrotem
+            # 🔹 7. Przekierowanie z powrotem do odpowiedniej strony:
+            # - lekarz: do /my_doctor_details
+            # - inni (np. recepcja/admin): do /doctor_details/<id>
             self.send_response(303)
-            self.send_header("Location", f"/doctor_details/{find_doctor_id_by_appointment_id(appointment_id)}")
+
+            if user_info["role"] == "doctor":
+                self.send_header("Location", f"/doctor_details/{appointment_doctor_id}")
+
             self.end_headers()
+            return
 
 
 
