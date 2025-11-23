@@ -21,6 +21,7 @@ from WebApp.Templates.pet_owner_history_view import render_pet_owner_history_pag
 from WebApp.Templates.render_login_page import render_login_page
 from WebApp.Templates.client_search_view import render_client_search_results, render_client_not_found
 from WebApp.Templates.doctor_search_view import render_doctor_search_results, render_doctor_not_found
+from WebApp.Templates.pet_search_view import render_pet_search_results, render_pet_not_found
 from http.server import SimpleHTTPRequestHandler, HTTPServer
 from urllib.parse import parse_qs, urlparse, unquote, unquote_plus
 from http.cookies import SimpleCookie
@@ -1420,64 +1421,36 @@ class MyHandler(SimpleHTTPRequestHandler):
 ###################     WYSZUKUJEMY ZWIERZĘ    ##################################
 
         elif self.path == "/searching_pet/":
+
             content_length = int(self.headers.get('Content-Length'))
             post_data = self.rfile.read(content_length)
-            data = {item.split('=')[0]: unquote_plus(item.split('=')[1]) for item in post_data.decode('utf-8').split('&')}
+            data = {item.split('=')[0]: unquote_plus(item.split('=')[1]) 
+                    for item in post_data.decode('utf-8').split('&')}
 
-            # Pobierz dane z formularza
             pet_name = data.get('pet_name', '')
             species = data.get('species', '')
 
-            # Upewnij się, że wartości zostały przypisane
             if not pet_name or not species:
                 self.send_error(400, "Brak wymaganych danych (pet_name, species).")
                 return
 
-            pets = find_pet(pet_name, species)
+            pet = find_pet(pet_name, species)
 
-            if pets:
-                # Jeśli znaleziono zwierzęta, wyświetlamy tabelę
-                # Wczytaj widok HTML
-                with open("templates/output_searching_pet.html", "r", encoding="utf-8") as file:
-                    html_content = file.read()
-
-                # Generowanie wierszy dla każdego zwierzęcia
-                pets_rows = ""
-                for pet in pets:
-                    deletion_date = pet[5].strftime('%Y-%m-%d %H:%M:%S') if pet[5] else "Zwierzę aktywne"
-                    pet_row = f"""
-                        <tr>
-                            <td>{pet[0]}</td>
-                            <td>{pet[1]}</td>
-                            <td>{pet[2]}</td>
-                            <td>{pet[3]}</td>
-                            <td>{pet[4]}</td>
-                            <td>{deletion_date}</td>
-                            <td>{pet[6]} {pet[7]}</td>
-                            <td>
-                                <div class="btn-group">
-                                    <a href="/update_pet/{pet[0]}" class="btn btn-edit">Edytuj</a>
-                                    <a href="/delete_pet/{pet[0]}" class="btn btn-danger">Usuń</a>
-                                </div>
-                            </td>
-                        </tr>
-                    """
-
-                    pets_rows += pet_row
-
-                # Zastąpienie zmiennych w szablonie
-                html_content = html_content.replace("{{ pet_rows }}", pets_rows)
-
-                # Wyślij odpowiedź HTML z danymi zwierząt
+            if pet:
+                html = render_pet_search_results(pet)
                 self.send_response(200)
                 self.send_header("Content-type", "text/html; charset=utf-8")
                 self.end_headers()
-                self.wfile.write(html_content.encode('utf-8'))
+                self.wfile.write(html.encode("utf-8"))
             else:
+                html = render_pet_not_found()
                 self.send_response(404)
                 self.send_header("Content-type", "text/html; charset=utf-8")
                 self.end_headers()
-                self.wfile.write("<p>Nie znaleziono klientów.</p>".encode('utf-8'))    
+                self.wfile.write(html.encode("utf-8"))
+
+            return
+  
 
 
 ###################     WYSZUKUJEMY WIZYTĘ    ##################################
