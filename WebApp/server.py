@@ -19,6 +19,7 @@ from WebApp.Templates.visit_details import render_visit_details_page
 from WebApp.Templates.edit_diagnosis_view import render_edit_diagnosis_page
 from WebApp.Templates.pet_owner_history_view import render_pet_owner_history_page
 from WebApp.Templates.render_login_page import render_login_page
+from WebApp.Templates.client_search_view import render_client_search_results, render_client_not_found
 from http.server import SimpleHTTPRequestHandler, HTTPServer
 from urllib.parse import parse_qs, urlparse, unquote, unquote_plus
 from http.cookies import SimpleCookie
@@ -1346,61 +1347,37 @@ class MyHandler(SimpleHTTPRequestHandler):
 ###################     WYSZUKUJEMY KLIENTA      ##################################
 
         elif self.path == "/searching_client/":
+
             content_length = int(self.headers.get('Content-Length'))
-            post_data = self.rfile.read(content_length)
-            data = {item.split('=')[0]: unquote_plus(item.split('=')[1]) for item in post_data.decode('utf-8').split('&')}
+            post_data = self.rfile.read(content_length).decode("utf-8")
 
-            # Pobierz dane z formularza
-            first_name = data.get('first_name', '')
-            last_name = data.get('last_name', '')
+            data = dict(item.split('=') for item in post_data.split('&'))
 
-            # Upewnij się, że wartości zostały przypisane
+            first_name = unquote_plus(data.get('first_name', ''))
+            last_name = unquote_plus(data.get('last_name', ''))
+
             if not first_name or not last_name:
                 self.send_error(400, "Brak wymaganych danych (first_name, last_name).")
                 return
 
-            clients = find_client(first_name, last_name)
+            
+            client = find_client(first_name, last_name)
 
-            if clients:
-                # Jeśli znaleziono klientów, wyświetlamy tabelę
-                # Wczytaj widok HTML
-                with open("templates/output_searching_client.html", "r", encoding="utf-8") as file:
-                    html_content = file.read()
-
-                # Generowanie wierszy dla każdego klienta
-                clients_rows = ""
-                for client in clients:
-                    # Generowanie wiersza z danymi klienta
-                    client_row = f"""
-                        <tr>
-                            <td>{client[0]}</td>
-                            <td>{client[1]}</td>
-                            <td>{client[2]}</td>
-                            <td>{client[3]}</td>
-                            <td>{client[4]}</td>
-                            <td>
-                                <div class="btn-group">
-                                    <a href="/update_client/{client[0]}" class="btn btn-edit">Edytuj</a>
-                                    <a href="/delete_client/{client[0]}" class="btn btn-danger">Usuń</a>
-                                </div>
-                            </td>
-                        </tr>
-                    """
-                    clients_rows += client_row  # Dodajemy wiersz do tabeli
-
-                # Zastąpienie zmiennych w szablonie
-                html_content = html_content.replace("{{ client_rows }}", clients_rows)
-
-                # Wyślij odpowiedź HTML z danymi klientów
+            if client:
+                html = render_client_search_results(client)
                 self.send_response(200)
                 self.send_header("Content-type", "text/html; charset=utf-8")
                 self.end_headers()
-                self.wfile.write(html_content.encode('utf-8'))
+                self.wfile.write(html.encode("utf-8"))
             else:
+                html = render_client_not_found()
                 self.send_response(404)
                 self.send_header("Content-type", "text/html; charset=utf-8")
                 self.end_headers()
-                self.wfile.write("<p>Nie znaleziono klientów.</p>".encode('utf-8'))
+                self.wfile.write(html.encode("utf-8"))
+
+            return
+
 
 
 
