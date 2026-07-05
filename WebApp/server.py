@@ -215,6 +215,11 @@ class MyHandler(SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(b"403 Forbidden: Brak uprawnien.")    
 
+    def redirect(self, location):
+        self.send_response(303)
+        self.send_header("Location", location)
+        self.end_headers()
+
 
 
     def do_GET(self):
